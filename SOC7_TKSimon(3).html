@@ -1,0 +1,1341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta http-equiv="X-Frame-Options" content="DENY">
+<meta http-equiv="X-XSS-Protection" content="1; mode=block">
+<meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+<meta http-equiv="Permissions-Policy" content="geolocation=(), microphone=(), camera=()">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; script-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'none';">
+<title>SOC-7 | Threat Intelligence Platform — T.K. Simon</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=IBM+Plex+Mono:wght@300;400;500&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --void:#060910;--abyss:#090e1a;--deep:#0d1525;--mid:#14202f;--surface:#1a2a3d;--lift:#20324a;
+  --gold:#c9a84c;--gold2:#e8c96a;--gold3:#f5e09a;--goldd:rgba(201,168,76,0.11);--golddd:rgba(201,168,76,0.06);
+  --sky:#4a9eff;--skyd:rgba(74,158,255,0.13);
+  --teal:#00c9a7;--teald:rgba(0,201,167,0.1);
+  --red:#e8445a;--redd:rgba(232,68,90,0.13);
+  --amber:#f09000;--amberd:rgba(240,144,0,0.12);
+  --violet:#8b5cf6;--violetd:rgba(139,92,246,0.12);
+  --txt:#d0dae6;--txt2:#8294a8;--txt3:#435262;
+  --bdr:rgba(201,168,76,0.11);--bdr2:rgba(201,168,76,0.24);--bdr3:rgba(201,168,76,0.4);
+  --r:5px;--rl:9px;--shadow:0 4px 24px rgba(0,0,0,0.5);
+}
+html,body{height:100%;overflow:hidden}
+body{background:var(--void);color:var(--txt);font-family:'Barlow',sans-serif;font-size:13px}
+::-webkit-scrollbar{width:3px;height:3px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:#7a5e22;border-radius:2px}
+.mono{font-family:'IBM Plex Mono',monospace}
+input,button,select,textarea{font-family:inherit}
+
+/* LAYOUT */
+.app{display:flex;flex-direction:column;height:100vh}
+.topbar{flex-shrink:0;height:52px;background:var(--abyss);border-bottom:1px solid var(--bdr);display:flex;align-items:center;padding:0 16px;z-index:400}
+.body{flex:1;display:flex;overflow:hidden}
+.sidebar{width:198px;flex-shrink:0;background:var(--abyss);border-right:1px solid var(--bdr);display:flex;flex-direction:column;overflow-y:auto}
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.tabs-bar{flex-shrink:0;background:var(--deep);border-bottom:1px solid var(--bdr);display:flex;align-items:center;padding:0 16px;height:38px;gap:2px}
+.view{flex:1;overflow-y:auto;padding:14px;display:none;flex-direction:column;gap:10px}
+.view.active{display:flex}
+.rp{width:252px;flex-shrink:0;background:var(--abyss);border-left:1px solid var(--bdr);overflow-y:auto;display:flex;flex-direction:column}
+.footer{flex-shrink:0;height:28px;background:var(--abyss);border-top:1px solid var(--bdr);display:flex;align-items:center;padding:0 14px;justify-content:space-between}
+
+/* TOPBAR */
+.logo{display:flex;align-items:center;gap:10px;text-decoration:none;margin-right:16px}
+.logo-eye{width:30px;height:30px;flex-shrink:0}
+.logo-t{font-family:'Cinzel',serif;font-size:14px;font-weight:700;color:var(--gold2);letter-spacing:3.5px}
+.logo-s{font-family:'IBM Plex Mono',monospace;font-size:7px;color:var(--txt3);letter-spacing:2.5px;display:block;margin-top:1px}
+.top-nav{display:flex;align-items:center;gap:1px;flex:1}
+.tn{font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:1.5px;color:var(--txt3);padding:5px 11px;border:none;background:none;cursor:pointer;border-radius:var(--r);transition:color .15s,background .15s;text-transform:uppercase;border:1px solid transparent}
+.tn:hover{color:var(--gold2);background:var(--goldd)}
+.tn.active{color:var(--gold2);background:var(--goldd);border-color:var(--bdr)}
+.top-right{display:flex;align-items:center;gap:10px;margin-left:auto}
+.livechip{display:flex;align-items:center;gap:5px;font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--teal);letter-spacing:1px;padding:3px 9px;border:1px solid rgba(0,201,167,0.2);border-radius:20px}
+.pd{width:5px;height:5px;border-radius:50%;background:var(--teal);animation:pdp 2s ease-in-out infinite}
+@keyframes pdp{0%,100%{opacity:1}50%{opacity:.2}}
+.tz-btn{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--txt3);padding:3px 8px;border:1px solid var(--bdr);border-radius:var(--r);background:none;cursor:pointer;transition:all .15s;letter-spacing:1px}
+.tz-btn:hover,.tz-btn.utc{color:var(--sky);border-color:rgba(74,158,255,0.3)}
+#topclock{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--txt3);min-width:76px;text-align:right}
+
+/* SIDEBAR */
+.sb-sec{font-family:'IBM Plex Mono',monospace;font-size:7px;letter-spacing:2px;color:var(--txt3);text-transform:uppercase;padding:10px 10px 4px}
+.sb-item{display:flex;align-items:center;gap:8px;padding:7px 10px;cursor:pointer;transition:all .12s;border-left:2px solid transparent;font-size:12px;color:var(--txt2)}
+.sb-item:hover{background:var(--mid);color:var(--txt);border-left-color:var(--bdr2)}
+.sb-item.active{background:var(--goldd);color:var(--gold2);border-left-color:var(--gold)}
+.sb-ic{font-size:12px;width:14px;text-align:center;flex-shrink:0}
+.sb-lbl{flex:1}
+.sb-ct{font-family:'IBM Plex Mono',monospace;font-size:8px;padding:1px 5px;border-radius:8px}
+.sb-ct.r{background:var(--redd);color:var(--red)}
+.sb-ct.a{background:var(--amberd);color:var(--amber)}
+.sb-ct.s{background:var(--skyd);color:var(--sky)}
+.sb-div{height:1px;background:var(--bdr);margin:4px 8px}
+.user-card{margin-top:auto;padding:10px;border-top:1px solid var(--bdr)}
+.ua{width:28px;height:28px;border-radius:50%;background:conic-gradient(#7a5e22,var(--gold2),#7a5e22);display:flex;align-items:center;justify-content:center;font-family:'Cinzel',serif;font-size:9px;font-weight:700;color:var(--gold2);flex-shrink:0}
+.u-row{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.u-name{font-size:11px;font-weight:500;color:var(--txt)}
+.u-role{font-family:'IBM Plex Mono',monospace;font-size:7px;color:var(--gold);letter-spacing:1px}
+.u-meta{font-family:'IBM Plex Mono',monospace;font-size:8px;color:var(--txt3);line-height:1.9}
+
+/* TABS */
+.tab-btn{font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:1px;color:var(--txt3);padding:0 12px;height:38px;border:none;background:none;cursor:pointer;border-bottom:2px solid transparent;transition:all .15s;text-transform:uppercase}
+.tab-btn:hover{color:var(--txt2)}
+.tab-btn.active{color:var(--gold2);border-bottom-color:var(--gold)}
+
+/* PANELS */
+.panel{background:var(--deep);border:1px solid var(--bdr);border-radius:var(--rl)}
+.ph{display:flex;align-items:center;justify-content:space-between;padding:9px 13px;border-bottom:1px solid var(--bdr)}
+.pt{font-family:'Cinzel',serif;font-size:10px;font-weight:600;color:var(--gold);letter-spacing:2px;text-transform:uppercase}
+.pm{font-family:'IBM Plex Mono',monospace;font-size:8px;color:var(--txt3);letter-spacing:1px}
+.pb{padding:11px 13px}
+.ph-actions{display:flex;align-items:center;gap:6px}
+
+/* BUTTONS */
+.btn{font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:1px;padding:5px 11px;border-radius:var(--r);cursor:pointer;transition:all .14s;text-transform:uppercase;border:1px solid;white-space:nowrap}
+.btn-gold{background:var(--goldd);color:var(--gold);border-color:var(--bdr2)}.btn-gold:hover{background:rgba(201,168,76,0.19);border-color:var(--bdr3)}
+.btn-red{background:var(--redd);color:var(--red);border-color:rgba(232,68,90,0.28)}.btn-red:hover{background:rgba(232,68,90,0.22)}
+.btn-teal{background:var(--teald);color:var(--teal);border-color:rgba(0,201,167,0.2)}.btn-teal:hover{background:rgba(0,201,167,0.18)}
+.btn-ghost{background:none;color:var(--txt3);border-color:var(--bdr)}.btn-ghost:hover{color:var(--txt2);border-color:var(--bdr2)}
+.btn-sky{background:var(--skyd);color:var(--sky);border-color:rgba(74,158,255,0.22)}.btn-sky:hover{background:rgba(74,158,255,0.2)}
+.btn-sm{font-size:8px;padding:3px 8px}
+
+/* STAT CARDS */
+.stat-row{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.sc{background:var(--deep);border:1px solid var(--bdr);border-radius:var(--rl);padding:11px 13px;position:relative;overflow:hidden;transition:border-color .18s,transform .12s;cursor:default}
+.sc:hover{border-color:var(--bdr3);transform:translateY(-1px)}
+.sc::after{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--gold);opacity:.35}
+.sc.r::after{background:var(--red);opacity:1}.sc.a::after{background:var(--amber);opacity:.9}.sc.t::after{background:var(--teal);opacity:.8}.sc.s::after{background:var(--sky);opacity:.8}
+.sc-lbl{font-family:'IBM Plex Mono',monospace;font-size:7px;letter-spacing:2px;color:var(--txt3);text-transform:uppercase;margin-bottom:5px}
+.sc-val{font-family:'Cinzel',serif;font-size:22px;font-weight:600;color:var(--gold2);line-height:1}
+.sc.r .sc-val{color:var(--red)}.sc.a .sc-val{color:var(--amber)}.sc.t .sc-val{color:var(--teal)}.sc.s .sc-val{color:var(--sky)}
+.sc-sub{font-size:10px;color:var(--txt3);margin-top:3px;font-family:'IBM Plex Mono',monospace}
+.sparkline{display:flex;align-items:flex-end;gap:1px;height:16px;margin-top:5px}
+.sp{flex:1;border-radius:1px 1px 0 0;min-height:2px;opacity:.75}
+
+/* ALERT TABLE */
+.filter-row{display:flex;align-items:center;gap:7px;margin-bottom:9px;flex-wrap:wrap}
+.filter-sel{background:var(--mid);border:1px solid var(--bdr);border-radius:var(--r);color:var(--txt2);font-family:'IBM Plex Mono',monospace;font-size:9px;padding:4px 8px;outline:none;cursor:pointer;transition:border-color .14s}
+.filter-sel:focus{border-color:var(--bdr2)}
+.search-in{background:var(--mid);border:1px solid var(--bdr);border-radius:var(--r);color:var(--txt);font-family:'IBM Plex Mono',monospace;font-size:9px;padding:4px 9px;outline:none;transition:border-color .14s;min-width:160px}
+.search-in:focus{border-color:var(--bdr2)}
+.search-in::placeholder{color:var(--txt3)}
+.atbl{width:100%;border-collapse:collapse}
+.atbl th{font-family:'IBM Plex Mono',monospace;font-size:7px;letter-spacing:1.5px;color:var(--txt3);text-align:left;padding:4px 9px;border-bottom:1px solid var(--bdr);text-transform:uppercase;cursor:pointer;user-select:none;white-space:nowrap}
+.atbl th:hover{color:var(--gold)}
+.atbl td{padding:7px 9px;border-bottom:1px solid rgba(201,168,76,0.04);font-size:11px;color:var(--txt2);vertical-align:middle}
+.atbl tr.atr{cursor:pointer;transition:background .1s}
+.atbl tr.atr:hover td{background:var(--mid);color:var(--txt)}
+.atbl tr.atr.sel td{background:var(--goldd)}
+.sev-pill{font-family:'IBM Plex Mono',monospace;font-size:8px;padding:2px 6px;border-radius:3px;font-weight:500;letter-spacing:.5px}
+.p-crit{background:var(--redd);color:var(--red);border:1px solid rgba(232,68,90,0.3)}
+.p-high{background:var(--amberd);color:var(--amber);border:1px solid rgba(240,144,0,0.25)}
+.p-med{background:var(--skyd);color:var(--sky);border:1px solid rgba(74,158,255,0.22)}
+.p-low{background:rgba(74,90,112,0.12);color:var(--txt3);border:1px solid rgba(74,90,112,0.2)}
+.st-new{background:var(--redd);color:var(--red);font-family:'IBM Plex Mono',monospace;font-size:8px;padding:2px 6px;border-radius:3px}
+.st-inv{background:var(--amberd);color:var(--amber);font-family:'IBM Plex Mono',monospace;font-size:8px;padding:2px 6px;border-radius:3px}
+.st-res{background:var(--teald);color:var(--teal);font-family:'IBM Plex Mono',monospace;font-size:8px;padding:2px 6px;border-radius:3px}
+.st-cls{background:rgba(74,90,112,0.15);color:var(--txt3);font-family:'IBM Plex Mono',monospace;font-size:8px;padding:2px 6px;border-radius:3px}
+
+/* IOC */
+.ioc-wrap{display:flex;gap:6px;margin-bottom:9px}
+.ioc-in{flex:1;background:var(--mid);border:1px solid var(--bdr);border-radius:var(--r);color:var(--txt);font-family:'IBM Plex Mono',monospace;font-size:10px;padding:6px 10px;outline:none;transition:border-color .14s}
+.ioc-in:focus{border-color:var(--bdr2)}
+.ioc-in::placeholder{color:var(--txt3)}
+.ioc-box{background:var(--mid);border:1px solid var(--bdr);border-radius:var(--rl);padding:12px 13px;display:none;margin-bottom:9px}
+.ioc-box.show{display:block}
+.ioc-res-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:9px}
+.ioc-field{background:var(--surface);border-radius:var(--r);padding:7px 9px}
+.ioc-fl{font-family:'IBM Plex Mono',monospace;font-size:7px;letter-spacing:1.5px;color:var(--txt3);text-transform:uppercase;margin-bottom:3px}
+.ioc-fv{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--txt);line-height:1.5;word-break:break-all}
+.score-ring{display:flex;align-items:center;gap:10px;margin-bottom:9px}
+.score-circle{width:50px;height:50px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Cinzel',serif;font-size:16px;font-weight:700;flex-shrink:0;border:2px solid}
+.sc-r{background:var(--redd);color:var(--red);border-color:rgba(232,68,90,0.4)}
+.sc-a{background:var(--amberd);color:var(--amber);border-color:rgba(240,144,0,0.35)}
+.sc-s{background:var(--skyd);color:var(--sky);border-color:rgba(74,158,255,0.3)}
+.ioc-tbl{width:100%;border-collapse:collapse}
+.ioc-tbl th{font-family:'IBM Plex Mono',monospace;font-size:7px;letter-spacing:1.5px;color:var(--txt3);text-align:left;padding:4px 7px;border-bottom:1px solid var(--bdr);text-transform:uppercase}
+.ioc-tbl td{padding:5px 7px;border-bottom:1px solid rgba(201,168,76,0.04);font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--txt2);vertical-align:middle}
+.ioc-tbl tr:hover td{background:var(--mid)}
+.sbar-w{width:44px;height:3px;background:var(--surface);border-radius:2px;overflow:hidden;display:inline-block}
+.sbar{height:100%;border-radius:2px}
+
+/* MITRE */
+.mitre-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:3px}
+.mc{background:var(--surface);border-radius:3px;padding:5px 4px;font-family:'IBM Plex Mono',monospace;font-size:7px;color:var(--txt3);text-align:center;cursor:pointer;transition:all .12s;border:1px solid transparent;line-height:1.4;user-select:none}
+.mc:hover{background:var(--goldd);border-color:var(--bdr2);color:var(--gold)}
+.mc.hit{background:var(--redd);border-color:rgba(232,68,90,0.28);color:var(--red)}
+.mc.warn{background:var(--amberd);border-color:rgba(240,144,0,0.22);color:var(--amber)}
+
+/* WORKFLOW */
+.wf-steps{display:flex;align-items:center;margin-bottom:12px;overflow-x:auto;padding-bottom:1px;background:var(--deep);border:1px solid var(--bdr);border-radius:var(--rl)}
+.ws{display:flex;align-items:center;gap:7px;padding:8px 13px;font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:1px;color:var(--txt3);cursor:pointer;transition:all .14s;white-space:nowrap;border-bottom:2px solid transparent;flex-shrink:0}
+.ws:hover{color:var(--txt2);background:var(--mid)}
+.ws.active{color:var(--gold2);border-bottom-color:var(--gold);background:var(--goldd)}
+.ws.done{color:var(--teal);border-bottom-color:var(--teal)}
+.ws-num{width:15px;height:15px;border-radius:50%;border:1px solid currentColor;display:flex;align-items:center;justify-content:center;font-size:8px;flex-shrink:0}
+.ws-arr{color:var(--txt3);font-size:9px;padding:0 1px;flex-shrink:0}
+.wf-content{display:none}.wf-content.active{display:block}
+
+/* TIMELINE */
+.tl-wrap{position:relative;padding-left:18px}
+.tl-line{position:absolute;left:6px;top:4px;bottom:4px;width:1px;background:var(--bdr)}
+.tl-item{position:relative;margin-bottom:8px;padding:7px 10px;background:var(--mid);border-radius:var(--r);border:1px solid var(--bdr)}
+.tl-dot{position:absolute;left:-15px;top:11px;width:7px;height:7px;border-radius:50%;border:1px solid}
+.tl-dot.e{background:var(--red);border-color:var(--red)}.tl-dot.w{background:var(--amber);border-color:var(--amber)}.tl-dot.i{background:var(--sky);border-color:var(--sky)}.tl-dot.c{background:var(--teal);border-color:var(--teal)}
+.tl-ts{font-family:'IBM Plex Mono',monospace;font-size:8px;color:var(--txt3);margin-bottom:2px}
+.tl-msg{font-size:11px;color:var(--txt);margin-bottom:1px}
+.tl-meta{font-family:'IBM Plex Mono',monospace;font-size:8px;color:var(--txt3)}
+
+/* PROCESS TREE */
+.ptree{font-family:'IBM Plex Mono',monospace;font-size:10px;line-height:2;color:var(--txt2)}
+.pt-root{color:var(--amber);font-weight:500}
+.pt-child{padding-left:18px;color:var(--txt2)}
+.pt-child::before{content:'├─ ';color:var(--txt3)}
+.pt-child.mal{color:var(--red)}.pt-child.sus{color:var(--amber)}
+.pt-gc{padding-left:36px;color:var(--txt3)}
+.pt-gc::before{content:'└─ ';color:var(--txt3)}
+.pt-gc.mal{color:var(--red)}.pt-gc.sus{color:var(--amber)}
+
+/* EVIDENCE */
+.ev-item{background:var(--mid);border:1px solid var(--bdr);border-radius:var(--r);padding:7px 11px;margin-bottom:5px;display:flex;align-items:start;gap:9px}
+.ev-title{font-size:11px;font-weight:500;color:var(--txt);margin-bottom:2px}
+.ev-meta{font-family:'IBM Plex Mono',monospace;font-size:8px;color:var(--txt3);line-height:1.6}
+
+/* ASSET */
+.crit-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.crit-item{background:var(--surface);border-radius:var(--r);padding:6px 8px}
+.crit-lbl{font-family:'IBM Plex Mono',monospace;font-size:7px;letter-spacing:1.5px;color:var(--txt3);text-transform:uppercase;margin-bottom:2px}
+.crit-val{font-size:11px;color:var(--txt);font-weight:500}
+
+/* NOTES */
+.notes-area{width:100%;background:var(--mid);border:1px solid var(--bdr);border-radius:var(--r);color:var(--txt);font-family:'IBM Plex Mono',monospace;font-size:10px;padding:7px 9px;resize:vertical;outline:none;min-height:70px;transition:border-color .14s;line-height:1.6}
+.notes-area:focus{border-color:var(--bdr2)}
+.saved-lbl{font-family:'IBM Plex Mono',monospace;font-size:8px;color:var(--teal);opacity:0;transition:opacity .3s}
+.saved-lbl.show{opacity:1}
+
+/* EXEC */
+.exec-g3{display:grid;grid-template-columns:repeat(3,1fr);gap:9px}
+.exec-g2{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.risk-meter{display:flex;flex-direction:column;align-items:center;padding:14px 10px}
+.risk-arc{position:relative;width:90px;height:54px;overflow:hidden;margin-bottom:6px}
+.arc-bg{width:90px;height:90px;border-radius:50%;border:7px solid var(--surface);position:absolute;top:0;clip-path:inset(0 0 50% 0)}
+.arc-fill{width:90px;height:90px;border-radius:50%;border:7px solid var(--amber);position:absolute;top:0;clip-path:inset(0 0 50% 0);transform-origin:50% 100%;transform:rotate(126deg)}
+.risk-score{font-family:'Cinzel',serif;font-size:20px;font-weight:700;color:var(--amber)}
+.kpi-row{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+.kpi-card{background:var(--surface);border-radius:var(--r);padding:9px 10px;text-align:center}
+.kpi-val{font-family:'Cinzel',serif;font-size:18px;font-weight:600;color:var(--gold2);margin-bottom:2px}
+.kpi-lbl{font-family:'IBM Plex Mono',monospace;font-size:7px;letter-spacing:1.5px;color:var(--txt3);text-transform:uppercase}
+.comp-row{display:flex;align-items:center;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--bdr);font-size:11px}
+.comp-row:last-child{border:none}
+.comp-bar-w{width:80px;height:4px;background:var(--surface);border-radius:2px;overflow:hidden}
+.comp-bar{height:100%;border-radius:2px}
+
+/* BARS */
+.bars{display:flex;align-items:flex-end;gap:2px;height:46px}
+.bb{flex:1;border-radius:1px 1px 0 0;background:var(--surface);min-height:2px}
+.bb.act{background:var(--gold)}.bb.hi{background:var(--red);opacity:.8}
+.bar-lbls{display:flex;justify-content:space-between;margin-top:3px}
+.bar-lbl{font-family:'IBM Plex Mono',monospace;font-size:7px;color:var(--txt3)}
+
+/* LOG */
+.log-feed{font-family:'IBM Plex Mono',monospace;font-size:9px;line-height:1;display:flex;flex-direction:column}
+.le{display:grid;grid-template-columns:52px 36px 1fr;gap:5px;padding:2px 0;border-bottom:1px solid rgba(201,168,76,0.03)}
+.l-ts{color:var(--txt3)}.l-i{color:var(--sky)}.l-w{color:var(--amber)}.l-e{color:var(--red)}.l-c{color:var(--teal)}.l-m{color:var(--txt2);word-break:break-all}
+
+/* RIGHT PANEL */
+.rp-sec{padding:9px 11px;border-bottom:1px solid var(--bdr)}
+.rp-title{font-family:'Cinzel',serif;font-size:9px;font-weight:600;color:var(--gold);letter-spacing:2px;text-transform:uppercase;margin-bottom:7px}
+.ep-list{display:flex;flex-direction:column;gap:3px}
+.ep{display:grid;grid-template-columns:7px 1fr auto;gap:5px;align-items:center;padding:5px 7px;background:var(--mid);border-radius:var(--r);border:1px solid transparent;transition:border-color .12s;cursor:pointer}
+.ep:hover{border-color:var(--bdr)}
+.ep-dot{width:7px;height:7px;border-radius:50%}
+.eo{background:var(--teal)}.ew{background:var(--amber)}.ec{background:var(--red);animation:pdp 1.5s ease-in-out infinite}
+.ep-name{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--txt2)}
+.ep-st{font-family:'IBM Plex Mono',monospace;font-size:8px}
+.geo-row{display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid rgba(201,168,76,0.04);font-family:'IBM Plex Mono',monospace;font-size:9px}
+.geo-row:last-child{border:none}
+
+/* MODAL */
+.modal-bg{position:fixed;inset:0;background:rgba(6,9,16,0.85);z-index:500;display:none;align-items:center;justify-content:center;backdrop-filter:blur(2px)}
+.modal-bg.open{display:flex}
+.modal{background:var(--deep);border:1px solid var(--bdr2);border-radius:var(--rl);width:540px;max-width:96vw;max-height:88vh;display:flex;flex-direction:column;box-shadow:var(--shadow)}
+.modal-head{display:flex;align-items:center;justify-content:space-between;padding:12px 15px;border-bottom:1px solid var(--bdr)}
+.modal-title{font-family:'Cinzel',serif;font-size:12px;font-weight:600;color:var(--gold2);letter-spacing:2px}
+.modal-close{background:none;border:1px solid var(--bdr);color:var(--txt3);border-radius:var(--r);padding:4px 10px;cursor:pointer;font-family:'IBM Plex Mono',monospace;font-size:9px;transition:all .14s}
+.modal-close:hover{border-color:var(--bdr3);color:var(--gold)}
+.modal-body{overflow-y:auto;padding:14px;flex:1}
+.modal-foot{padding:10px 14px;border-top:1px solid var(--bdr);display:flex;justify-content:flex-end;gap:7px}
+.f-row{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:9px}
+.f-1{display:flex;flex-direction:column;gap:3px}
+.f-lbl{font-family:'IBM Plex Mono',monospace;font-size:7px;letter-spacing:1.5px;color:var(--txt3);text-transform:uppercase}
+.f-val{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--txt);padding:5px 8px;background:var(--mid);border-radius:var(--r);border:1px solid var(--bdr);line-height:1.5;word-break:break-all}
+.f-in{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--txt);padding:5px 8px;background:var(--mid);border-radius:var(--r);border:1px solid var(--bdr);outline:none;transition:border-color .14s;width:100%}
+.f-in:focus{border-color:var(--bdr2)}
+.f-sel{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--txt);padding:5px 8px;background:var(--mid);border-radius:var(--r);border:1px solid var(--bdr);outline:none;cursor:pointer;width:100%}
+.divider{height:1px;background:var(--bdr);margin:9px 0}
+
+/* TAGS */
+.tag{font-family:'IBM Plex Mono',monospace;font-size:8px;padding:1px 6px;border-radius:3px;display:inline-block;margin:1px}
+.tag-r{background:var(--redd);color:var(--red)}.tag-a{background:var(--amberd);color:var(--amber)}.tag-s{background:var(--skyd);color:var(--sky)}.tag-t{background:var(--teald);color:var(--teal)}.tag-g{background:var(--goldd);color:var(--gold)}
+
+/* TOAST */
+.toast-wrap{position:fixed;bottom:38px;right:14px;z-index:600;display:flex;flex-direction:column;gap:5px;align-items:flex-end}
+.toast{background:var(--deep);border:1px solid var(--bdr2);border-radius:var(--r);padding:7px 13px;font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--txt);box-shadow:var(--shadow);display:flex;align-items:center;gap:7px;animation:tin .2s ease;max-width:300px}
+.t-ok{border-color:rgba(0,201,167,0.3);color:var(--teal)}.t-err{border-color:rgba(232,68,90,0.3);color:var(--red)}.t-warn{border-color:rgba(240,144,0,0.3);color:var(--amber)}
+@keyframes tin{from{opacity:0;transform:translateX(8px)}to{opacity:1;transform:translateX(0)}}
+
+/* MISC */
+.scanbar{height:2px;background:var(--surface);border-radius:1px;overflow:hidden}
+.scanfill{height:100%;background:var(--gold);border-radius:1px;animation:scan 3.5s ease-in-out infinite alternate}
+@keyframes scan{from{width:3%}to{width:100%}}
+.gold-line{height:1px;background:linear-gradient(90deg,transparent,var(--bdr2),transparent);margin:7px 0}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:9px}
+.fn{font-family:'IBM Plex Mono',monospace;font-size:8px;color:var(--txt3);letter-spacing:1px}
+.badge-row{display:flex;align-items:center;gap:5px;flex-wrap:wrap}
+</style>
+</head>
+<body>
+<div class="app">
+<!-- TOPBAR -->
+<header class="topbar">
+  <a class="logo" href="#" aria-label="SOC-7">
+    <svg class="logo-eye" viewBox="0 0 30 30" fill="none" aria-hidden="true">
+      <ellipse cx="15" cy="15" rx="13" ry="7.5" stroke="#c9a84c" stroke-width=".9"/>
+      <ellipse cx="15" cy="15" rx="13" ry="7.5" stroke="#c9a84c" stroke-width="2.5" stroke-opacity=".1"/>
+      <circle cx="15" cy="15" r="3.8" fill="rgba(201,168,76,.1)" stroke="#c9a84c" stroke-width=".9"/>
+      <circle cx="15" cy="15" r="1.7" fill="#c9a84c"/>
+      <circle cx="15" cy="15" r="1.7" fill="#c9a84c" opacity=".3"><animate attributeName="r" values="1.7;5;1.7" dur="3s" repeatCount="indefinite"/><animate attributeName="opacity" values=".3;0;.3" dur="3s" repeatCount="indefinite"/></circle>
+      <line x1="2" y1="15" x2="5" y2="15" stroke="#c9a84c" stroke-width=".8"/>
+      <line x1="25" y1="15" x2="28" y2="15" stroke="#c9a84c" stroke-width=".8"/>
+    </svg>
+    <div><span class="logo-t">SOC-7</span><span class="logo-s">threat intelligence</span></div>
+  </a>
+  <nav class="top-nav">
+    <button class="tn active" onclick="switchView('overview',this)">Overview</button>
+    <button class="tn" onclick="switchView('alerts',this)">Alerts</button>
+    <button class="tn" onclick="switchView('investigate',this)">Investigate</button>
+    <button class="tn" onclick="switchView('hunt',this)">Hunt</button>
+    <button class="tn" onclick="switchView('exec',this)">Executive</button>
+    <button class="tn" onclick="switchView('cases',this)">Cases</button>
+  </nav>
+  <div class="top-right">
+    <div class="livechip"><span class="pd"></span>LIVE</div>
+    <button class="tz-btn" id="tz-btn" onclick="toggleTZ()">MT</button>
+    <span id="topclock">--:--:-- MT</span>
+  </div>
+</header>
+
+<div class="body">
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="sb-sec">Detection</div>
+  <div class="sb-item active" id="sb-overview" onclick="switchView('overview',null,this)"><span class="sb-ic">◈</span><span class="sb-lbl">Dashboard</span></div>
+  <div class="sb-item" id="sb-alerts" onclick="switchView('alerts',null,this)"><span class="sb-ic">◉</span><span class="sb-lbl">Triage Queue</span><span class="sb-ct r" id="sb-crit-ct">0</span></div>
+  <div class="sb-item" id="sb-hunt" onclick="switchView('hunt',null,this)"><span class="sb-ic">◎</span><span class="sb-lbl">IOC Hunt</span><span class="sb-ct s">5</span></div>
+  <div class="sb-sec">Analysis</div>
+  <div class="sb-item" id="sb-investigate" onclick="switchView('investigate',null,this)"><span class="sb-ic">▣</span><span class="sb-lbl">Investigate</span></div>
+  <div class="sb-item" onclick="openMitreModal()"><span class="sb-ic">▦</span><span class="sb-lbl">MITRE Matrix</span></div>
+  <div class="sb-sec">Management</div>
+  <div class="sb-item" id="sb-cases" onclick="switchView('cases',null,this)"><span class="sb-ic">◐</span><span class="sb-lbl">Cases</span><span class="sb-ct a" id="sb-case-ct">0</span></div>
+  <div class="sb-item" id="sb-exec" onclick="switchView('exec',null,this)"><span class="sb-ic">◑</span><span class="sb-lbl">Executive</span></div>
+  <div class="sb-div"></div>
+  <div class="sb-item" onclick="openPrefsModal()"><span class="sb-ic">◬</span><span class="sb-lbl">Preferences</span></div>
+  <div class="user-card">
+    <div class="u-row">
+      <div class="ua">TK</div>
+      <div><div class="u-name">T.K. Simon</div><div class="u-role">SOC ANALYST</div></div>
+    </div>
+    <div class="u-meta">Auth: <span style="color:var(--teal)">MFA ✓ · OIDC</span><br>Tier: <span style="color:var(--gold)">ANALYST-2</span><br>Session: <span id="ses-timer">15:00</span></div>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<main class="main">
+<div class="tabs-bar" id="tabs-bar"></div>
+
+<!-- OVERVIEW -->
+<div class="view active" id="view-overview">
+  <div class="stat-row">
+    <div class="sc r"><div class="sc-lbl">Critical Alerts</div><div class="sc-val" id="sv-crit">0</div><div class="sc-sub" id="sv-crit-sub">—</div><div class="sparkline" id="sp-crit"></div></div>
+    <div class="sc a"><div class="sc-lbl">Open Cases</div><div class="sc-val" id="sv-cases">0</div><div class="sc-sub" id="sv-cases-sub">—</div><div class="sparkline" id="sp-cases"></div></div>
+    <div class="sc s"><div class="sc-lbl">IOC Matches</div><div class="sc-val" id="sv-ioc">0</div><div class="sc-sub">24h window</div><div class="sparkline" id="sp-ioc"></div></div>
+    <div class="sc t"><div class="sc-lbl">Endpoints</div><div class="sc-val">312</div><div class="sc-sub" id="sv-ep-sub">—</div><div class="sparkline" id="sp-ep"></div></div>
+  </div>
+  <div class="g2">
+    <div class="panel">
+      <div class="ph"><span class="pt">Recent Alerts</span><div class="ph-actions"><div class="scanbar" style="width:55px"><div class="scanfill"></div></div><button class="btn btn-gold btn-sm" onclick="switchView('alerts')">All →</button></div></div>
+      <div class="pb" id="ov-alert-list" style="padding:7px 9px"></div>
+    </div>
+    <div class="panel">
+      <div class="ph"><span class="pt">Event Volume · 24h</span><span class="pm">SIEM ingest</span></div>
+      <div class="pb">
+        <div class="bars" id="bars24"></div>
+        <div class="bar-lbls"><span class="bar-lbl">00:00</span><span class="bar-lbl">06:00</span><span class="bar-lbl">12:00</span><span class="bar-lbl">18:00</span><span class="bar-lbl">now</span></div>
+        <div class="gold-line"></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px">
+          <div><div class="fn" style="margin-bottom:2px">PEAK</div><div class="mono" style="font-size:12px;color:var(--red)">1,847</div></div>
+          <div><div class="fn" style="margin-bottom:2px">AVG/HR</div><div class="mono" style="font-size:12px;color:var(--gold)">312</div></div>
+          <div><div class="fn" style="margin-bottom:2px">TOTAL</div><div class="mono" style="font-size:12px;color:var(--sky)">41.2K</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="g3">
+    <div class="panel">
+      <div class="ph"><span class="pt">MITRE ATT&CK</span><button class="btn btn-ghost btn-sm" onclick="openMitreModal()">Full Matrix</button></div>
+      <div class="pb" style="padding:7px"><div class="mitre-grid" id="mitre-mini"></div><div style="display:flex;gap:10px;margin-top:5px;font-family:'IBM Plex Mono',monospace;font-size:8px"><span style="color:var(--red)">■ hit</span><span style="color:var(--amber)">■ warn</span><span style="color:var(--txt3)">■ clean</span></div></div>
+    </div>
+    <div class="panel">
+      <div class="ph"><span class="pt">Threat Origins</span><span class="pm">geo intel</span></div>
+      <div class="pb" id="ov-geo" style="padding:8px 11px"></div>
+    </div>
+    <div class="panel">
+      <div class="ph"><span class="pt">OWASP Posture</span><span class="pm">9/10 green</span></div>
+      <div class="pb" id="ov-owasp" style="padding:8px"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ALERTS -->
+<div class="view" id="view-alerts">
+  <div class="panel">
+    <div class="ph"><span class="pt">Alert Triage Queue</span><div class="ph-actions"><span class="pm" id="alert-ct-lbl">—</span><button class="btn btn-teal btn-sm" onclick="exportAlerts()">Export CSV</button><button class="btn btn-gold btn-sm" onclick="openNewCaseModal()">New Case</button></div></div>
+    <div class="pb" style="padding-bottom:5px">
+      <div class="filter-row">
+        <input class="search-in" id="alert-search" placeholder="Search alerts..." oninput="renderAlerts()" maxlength="100" autocomplete="off" spellcheck="false">
+        <select class="filter-sel" id="f-sev" onchange="renderAlerts()"><option value="">All Severity</option><option value="CRITICAL">Critical</option><option value="HIGH">High</option><option value="MEDIUM">Medium</option><option value="LOW">Low</option></select>
+        <select class="filter-sel" id="f-status" onchange="renderAlerts()"><option value="">All Status</option><option value="NEW">New</option><option value="INVESTIGATING">Investigating</option><option value="RESOLVED">Resolved</option><option value="CLOSED">Closed</option></select>
+        <select class="filter-sel" id="f-sort" onchange="renderAlerts()"><option value="time">Time</option><option value="sev">Severity</option><option value="host">Host</option></select>
+        <button class="btn btn-ghost btn-sm" onclick="clearFilters()">Clear</button>
+      </div>
+      <table class="atbl"><thead><tr>
+        <th onclick="sortBy('sev')">SEV ↕</th>
+        <th onclick="sortBy('time')">TIMESTAMP ↕</th>
+        <th>ALERT</th>
+        <th onclick="sortBy('host')">HOST ↕</th>
+        <th>MITRE</th>
+        <th>STATUS</th>
+        <th>ACTIONS</th>
+      </tr></thead><tbody id="alert-tbody"></tbody></table>
+    </div>
+  </div>
+</div>
+
+<!-- INVESTIGATE -->
+<div class="view" id="view-investigate">
+  <div class="panel" id="inv-picker">
+    <div class="ph"><span class="pt">Select Alert to Investigate</span><span class="pm">click any row to load workflow</span></div>
+    <div class="pb" id="inv-picker-list" style="padding:8px 10px"></div>
+  </div>
+  <div id="inv-wf" style="display:none">
+    <div class="wf-steps" id="wf-steps">
+      <div class="ws active" onclick="setStep(0)" data-step="0"><span class="ws-num">1</span>Alert</div>
+      <span class="ws-arr">›</span>
+      <div class="ws" onclick="setStep(1)" data-step="1"><span class="ws-num">2</span>Host</div>
+      <span class="ws-arr">›</span>
+      <div class="ws" onclick="setStep(2)" data-step="2"><span class="ws-num">3</span>User</div>
+      <span class="ws-arr">›</span>
+      <div class="ws" onclick="setStep(3)" data-step="3"><span class="ws-num">4</span>Process Tree</div>
+      <span class="ws-arr">›</span>
+      <div class="ws" onclick="setStep(4)" data-step="4"><span class="ws-num">5</span>Timeline</div>
+      <span class="ws-arr">›</span>
+      <div class="ws" onclick="setStep(5)" data-step="5"><span class="ws-num">6</span>Evidence</div>
+      <span class="ws-arr">›</span>
+      <div class="ws" onclick="setStep(6)" data-step="6"><span class="ws-num">7</span>Remediate</div>
+    </div>
+
+    <div class="wf-content active" id="wf-0">
+      <div class="g2">
+        <div class="panel"><div class="ph"><span class="pt">Alert Detail</span><span id="wf-sev-pill" class="sev-pill"></span></div><div class="pb" id="wf-alert-body"></div></div>
+        <div class="panel"><div class="ph"><span class="pt">Asset Criticality</span></div><div class="pb" id="wf-asset-body"></div></div>
+      </div>
+      <div class="panel"><div class="ph"><span class="pt">Analyst Notes</span><span class="saved-lbl" id="sv-0">Saved ✓</span></div><div class="pb"><textarea class="notes-area" id="note-alert" placeholder="Investigation notes..." oninput="saveNote('alert',0)"></textarea></div></div>
+      <div style="display:flex;gap:7px;margin-top:3px">
+        <button class="btn btn-gold" onclick="setStep(1)">Investigate Host →</button>
+        <button class="btn btn-red" onclick="escalateAlert()">Escalate</button>
+        <button class="btn btn-teal" onclick="resolveAlert()">Resolve</button>
+        <button class="btn btn-sky" onclick="openNewCaseModal()">Create Case</button>
+      </div>
+    </div>
+
+    <div class="wf-content" id="wf-1">
+      <div class="g2">
+        <div class="panel"><div class="ph"><span class="pt">Host Profile</span></div><div class="pb" id="wf-host-body"></div></div>
+        <div class="panel"><div class="ph"><span class="pt">Network Context</span></div><div class="pb" id="wf-net-body"></div></div>
+      </div>
+      <div class="panel"><div class="ph"><span class="pt">Analyst Notes</span><span class="saved-lbl" id="sv-1">Saved ✓</span></div><div class="pb"><textarea class="notes-area" id="note-host" placeholder="Host investigation notes..." oninput="saveNote('host',1)"></textarea></div></div>
+      <div style="display:flex;gap:7px;margin-top:3px">
+        <button class="btn btn-ghost" onclick="setStep(0)">← Back</button>
+        <button class="btn btn-gold" onclick="setStep(2)">Investigate User →</button>
+        <button class="btn btn-red" onclick="isolateHost()">Isolate Host</button>
+      </div>
+    </div>
+
+    <div class="wf-content" id="wf-2">
+      <div class="g2">
+        <div class="panel"><div class="ph"><span class="pt">User Profile</span></div><div class="pb" id="wf-user-body"></div></div>
+        <div class="panel"><div class="ph"><span class="pt">Activity Baseline</span></div><div class="pb" id="wf-baseline-body"></div></div>
+      </div>
+      <div class="panel"><div class="ph"><span class="pt">Analyst Notes</span><span class="saved-lbl" id="sv-2">Saved ✓</span></div><div class="pb"><textarea class="notes-area" id="note-user" placeholder="User investigation notes..." oninput="saveNote('user',2)"></textarea></div></div>
+      <div style="display:flex;gap:7px;margin-top:3px">
+        <button class="btn btn-ghost" onclick="setStep(1)">← Back</button>
+        <button class="btn btn-gold" onclick="setStep(3)">Process Tree →</button>
+        <button class="btn btn-red" onclick="suspendUser()">Suspend Account</button>
+        <button class="btn btn-sky" onclick="forceLogout()">Force Logout</button>
+      </div>
+    </div>
+
+    <div class="wf-content" id="wf-3">
+      <div class="panel"><div class="ph"><span class="pt">Process Execution Tree</span><span class="pm">malicious = red · suspicious = amber</span></div><div class="pb"><div class="ptree" id="wf-ptree"></div></div></div>
+      <div style="display:flex;gap:7px;margin-top:3px">
+        <button class="btn btn-ghost" onclick="setStep(2)">← Back</button>
+        <button class="btn btn-gold" onclick="setStep(4)">Timeline →</button>
+      </div>
+    </div>
+
+    <div class="wf-content" id="wf-4">
+      <div class="panel"><div class="ph"><span class="pt">Event Timeline</span><span class="pm">chronological · all sources</span></div><div class="pb"><div class="tl-wrap"><div class="tl-line"></div><div id="wf-timeline"></div></div></div></div>
+      <div style="display:flex;gap:7px;margin-top:3px">
+        <button class="btn btn-ghost" onclick="setStep(3)">← Back</button>
+        <button class="btn btn-gold" onclick="setStep(5)">Evidence →</button>
+      </div>
+    </div>
+
+    <div class="wf-content" id="wf-5">
+      <div class="panel"><div class="ph"><span class="pt">Evidence Collection</span><button class="btn btn-teal btn-sm" onclick="exportEvidence()">Export Package</button></div><div class="pb" id="wf-evidence"></div></div>
+      <div style="display:flex;gap:7px;margin-top:3px">
+        <button class="btn btn-ghost" onclick="setStep(4)">← Back</button>
+        <button class="btn btn-gold" onclick="setStep(6)">Remediate →</button>
+      </div>
+    </div>
+
+    <div class="wf-content" id="wf-6">
+      <div class="g2">
+        <div class="panel"><div class="ph"><span class="pt">Immediate Actions</span></div><div class="pb" id="wf-immediate"></div></div>
+        <div class="panel"><div class="ph"><span class="pt">Long-Term Mitigations</span></div><div class="pb" id="wf-longterm"></div></div>
+      </div>
+      <div class="panel"><div class="ph"><span class="pt">Final Summary</span><span class="saved-lbl" id="sv-6">Saved ✓</span></div><div class="pb"><textarea class="notes-area" id="note-summary" placeholder="Write investigation summary for report..." oninput="saveNote('summary',6)"></textarea></div></div>
+      <div style="display:flex;gap:7px;margin-top:3px">
+        <button class="btn btn-ghost" onclick="setStep(5)">← Back</button>
+        <button class="btn btn-teal" onclick="closeInvestigation()">Close Investigation</button>
+        <button class="btn btn-gold" onclick="generateReport()">Generate Report</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- HUNT -->
+<div class="view" id="view-hunt">
+  <div class="panel">
+    <div class="ph"><span class="pt">IOC Enrichment & Threat Hunt</span><span class="pm">IP · SHA256 · DOMAIN · URL</span></div>
+    <div class="pb">
+      <div class="ioc-wrap">
+        <input class="ioc-in" id="ioc-q" type="text" placeholder="185.220.101.47  ·  a3f9c2d82c  ·  exfil-c2.ru" aria-label="IOC lookup" maxlength="200" autocomplete="off" spellcheck="false">
+        <button class="btn btn-gold" onclick="doLookup()">Enrich IOC</button>
+        <button class="btn btn-ghost" onclick="clearLookup()">Clear</button>
+      </div>
+      <div class="ioc-box" id="ioc-box">
+        <div class="score-ring">
+          <div class="score-circle" id="ioc-sc">—</div>
+          <div>
+            <div class="mono" style="font-size:12px;font-weight:500;color:var(--txt)" id="ioc-ind">—</div>
+            <div id="ioc-type-lbl" class="fn" style="margin-top:2px">—</div>
+            <div id="ioc-tags" class="badge-row" style="margin-top:4px"></div>
+          </div>
+        </div>
+        <div class="ioc-res-grid">
+          <div class="ioc-field"><div class="ioc-fl">Confidence</div><div class="ioc-fv" id="ioc-conf">—</div></div>
+          <div class="ioc-field"><div class="ioc-fl">First Seen</div><div class="ioc-fv" id="ioc-fs">—</div></div>
+          <div class="ioc-field"><div class="ioc-fl">Threat Actor</div><div class="ioc-fv" id="ioc-actor">—</div></div>
+          <div class="ioc-field"><div class="ioc-fl">Malware Family</div><div class="ioc-fv" id="ioc-mal">—</div></div>
+          <div class="ioc-field"><div class="ioc-fl">MITRE Techniques</div><div class="ioc-fv" id="ioc-mit">—</div></div>
+          <div class="ioc-field"><div class="ioc-fl">Reputation</div><div class="ioc-fv" id="ioc-rep">—</div></div>
+          <div class="ioc-field"><div class="ioc-fl">Related Alerts</div><div class="ioc-fv" id="ioc-rel">—</div></div>
+          <div class="ioc-field"><div class="ioc-fl">Feed Sources</div><div class="ioc-fv" id="ioc-feeds">—</div></div>
+        </div>
+        <div class="divider"></div>
+        <div style="display:flex;gap:7px">
+          <button class="btn btn-red btn-sm" onclick="blockIOC()">Block IOC</button>
+          <button class="btn btn-gold btn-sm" onclick="addIOCToCase()">Add to Case</button>
+          <button class="btn btn-ghost btn-sm" onclick="exportIOC()">Export Report</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="panel">
+    <div class="ph"><span class="pt">Known IOC Database</span><span class="pm" id="ioc-db-ct">—</span></div>
+    <div class="pb" style="padding:7px">
+      <table class="ioc-tbl"><thead><tr><th>TYPE</th><th>INDICATOR</th><th>SCORE</th><th>CONFIDENCE</th><th>TAGS</th><th>ACTION</th></tr></thead><tbody id="ioc-tbody"></tbody></table>
+    </div>
+  </div>
+</div>
+
+<!-- EXEC -->
+<div class="view" id="view-exec">
+  <div class="exec-g3">
+    <div class="panel">
+      <div class="ph"><span class="pt">Enterprise Risk Score</span></div>
+      <div class="risk-meter">
+        <div class="risk-arc"><div class="arc-bg"></div><div class="arc-fill" id="risk-arc"></div></div>
+        <div class="risk-score" id="risk-score-val">7.0</div>
+        <div class="fn" style="margin-top:2px;letter-spacing:1px;color:var(--amber)">HIGH RISK</div>
+        <div class="fn" style="margin-top:5px;text-align:center">7 crits · 3 active cases · CVSS avg 7.8</div>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="ph"><span class="pt">SLA / Response KPIs</span></div>
+      <div class="pb">
+        <div class="kpi-row">
+          <div class="kpi-card"><div class="kpi-val" style="color:var(--amber)">18m</div><div class="kpi-lbl">Mean Detect</div></div>
+          <div class="kpi-card"><div class="kpi-val" style="color:var(--red)">2.4h</div><div class="kpi-lbl">Mean Respond</div></div>
+          <div class="kpi-card"><div class="kpi-val" style="color:var(--teal)">94%</div><div class="kpi-lbl">Alert Coverage</div></div>
+          <div class="kpi-card"><div class="kpi-val" style="color:var(--sky)">6.2%</div><div class="kpi-lbl">False Positive</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="ph"><span class="pt">Financial Exposure</span></div>
+      <div class="pb">
+        <div style="text-align:center;padding:6px 0">
+          <div class="fn" style="margin-bottom:3px">EST. BREACH COST</div>
+          <div style="font-family:'Cinzel',serif;font-size:26px;font-weight:700;color:var(--red)">$2.4M</div>
+          <div class="fn" style="margin-top:3px">NIST IR 8286 model</div>
+        </div>
+        <div class="gold-line"></div>
+        <div id="fin-rows"></div>
+      </div>
+    </div>
+  </div>
+  <div class="exec-g2">
+    <div class="panel"><div class="ph"><span class="pt">Compliance Posture</span><span class="pm">frameworks</span></div><div class="pb" id="comp-list"></div></div>
+    <div class="panel"><div class="ph"><span class="pt">Alert Trend · 7 Day</span><span class="pm">by severity</span></div><div class="pb"><div class="bars" id="bars7d"></div><div class="bar-lbls"><span class="bar-lbl">Mon</span><span class="bar-lbl">Tue</span><span class="bar-lbl">Wed</span><span class="bar-lbl">Thu</span><span class="bar-lbl">Fri</span><span class="bar-lbl">Sat</span><span class="bar-lbl">Sun</span></div><div class="gold-line"></div><div id="exec-alert-summary"></div></div></div>
+  </div>
+  <div class="panel"><div class="ph"><span class="pt">OWASP Top 10 · Security Posture</span><span class="pm">runtime controls</span></div><div class="pb"><div style="display:grid;grid-template-columns:repeat(5,1fr);gap:7px" id="owasp-full"></div></div></div>
+</div>
+
+<!-- CASES -->
+<div class="view" id="view-cases">
+  <div class="panel">
+    <div class="ph"><span class="pt">Case Management</span><div class="ph-actions"><span class="pm" id="cases-ct-lbl">—</span><button class="btn btn-gold btn-sm" onclick="openNewCaseModal()">New Case</button></div></div>
+    <div class="pb">
+      <table class="atbl"><thead><tr><th>ID</th><th>TITLE</th><th>PRIORITY</th><th>STATUS</th><th>CREATED</th><th>ANALYST</th><th>ACTIONS</th></tr></thead><tbody id="cases-tbody"></tbody></table>
+    </div>
+  </div>
+</div>
+
+</main>
+
+<!-- RIGHT PANEL -->
+<aside class="rp">
+  <div class="rp-sec"><div class="rp-title">Endpoint Status</div><div class="ep-list" id="rp-ep"></div></div>
+  <div class="rp-sec"><div class="rp-title">Threat Origins</div><div id="rp-geo"></div></div>
+  <div class="rp-sec"><div class="rp-title">Live Log</div><div class="log-feed" id="rp-log" style="height:110px;overflow:hidden"></div></div>
+  <div class="rp-sec" style="margin-top:auto;padding-top:9px">
+    <div class="fn" style="line-height:2">BUILT BY T.K. SIMON<br>GOOGLE CYBERSEC CERTIFIED<br>SIEM · IAM · LINUX · PYTHON<br><span style="color:var(--gold)">SOC-7 v3.0 · OWASP TOP 10</span></div>
+  </div>
+</aside>
+</div>
+
+<!-- FOOTER -->
+<footer class="footer">
+  <div style="display:flex;align-items:center;gap:14px">
+    <span class="fn" style="color:var(--teal)">● NOMINAL</span>
+    <span class="fn">SOC-7 v3.0</span>
+    <span class="fn">T.K. SIMON · GOOGLE CYBERSEC CERT</span>
+    <span class="fn">OWASP TOP 10 HARDENED · ZERO EXTERNAL JS</span>
+  </div>
+  <div class="fn" id="fclock">— MT</div>
+</footer>
+</div>
+
+<!-- MODALS -->
+<div class="modal-bg" id="m-alert">
+  <div class="modal">
+    <div class="modal-head"><span class="modal-title" id="m-alert-title">Alert Detail</span><button class="modal-close" onclick="closeM('m-alert')">Close ×</button></div>
+    <div class="modal-body" id="m-alert-body"></div>
+    <div class="modal-foot"><button class="btn btn-ghost" onclick="closeM('m-alert')">Dismiss</button><button class="btn btn-gold" onclick="investigateFromModal()">Investigate →</button><button class="btn btn-teal" onclick="resolveFromModal()">Resolve</button></div>
+  </div>
+</div>
+
+<div class="modal-bg" id="m-mitre">
+  <div class="modal" style="width:660px;max-width:97vw">
+    <div class="modal-head"><span class="modal-title">MITRE ATT&CK — Full Matrix</span><button class="modal-close" onclick="closeM('m-mitre')">Close ×</button></div>
+    <div class="modal-body" id="m-mitre-body"></div>
+    <div class="modal-foot"><button class="btn btn-ghost" onclick="closeM('m-mitre')">Close</button></div>
+  </div>
+</div>
+
+<div class="modal-bg" id="m-mitre-drill">
+  <div class="modal" style="width:480px">
+    <div class="modal-head"><span class="modal-title" id="mdd-title">Tactic Detail</span><button class="modal-close" onclick="closeM('m-mitre-drill')">Close ×</button></div>
+    <div class="modal-body" id="mdd-body"></div>
+    <div class="modal-foot"><button class="btn btn-ghost" onclick="closeM('m-mitre-drill')">Close</button><button class="btn btn-gold" onclick="huntFromMitre()">Hunt This Technique</button></div>
+  </div>
+</div>
+
+<div class="modal-bg" id="m-case">
+  <div class="modal">
+    <div class="modal-head"><span class="modal-title">Create New Case</span><button class="modal-close" onclick="closeM('m-case')">Close ×</button></div>
+    <div class="modal-body">
+      <div class="f-row"><div class="f-1"><label class="f-lbl">Case Title</label><input class="f-in" id="nc-title" placeholder="Incident description..." maxlength="120"></div><div class="f-1"><label class="f-lbl">Priority</label><select class="f-sel" id="nc-pri"><option value="CRITICAL">Critical</option><option value="HIGH">High</option><option value="MEDIUM" selected>Medium</option><option value="LOW">Low</option></select></div></div>
+      <div class="f-row"><div class="f-1"><label class="f-lbl">Related Alert</label><select class="f-sel" id="nc-alert"><option value="">None</option></select></div><div class="f-1"><label class="f-lbl">Assigned To</label><input class="f-in" id="nc-analyst" value="T.K. Simon" maxlength="60"></div></div>
+      <div class="f-1"><label class="f-lbl" style="margin-bottom:3px">Description</label><textarea class="notes-area" id="nc-desc" placeholder="Initial findings..." style="min-height:70px"></textarea></div>
+    </div>
+    <div class="modal-foot"><button class="btn btn-ghost" onclick="closeM('m-case')">Cancel</button><button class="btn btn-gold" onclick="submitCase()">Create Case</button></div>
+  </div>
+</div>
+
+<div class="modal-bg" id="m-prefs">
+  <div class="modal" style="width:380px">
+    <div class="modal-head"><span class="modal-title">Analyst Preferences</span><button class="modal-close" onclick="closeM('m-prefs')">Close ×</button></div>
+    <div class="modal-body">
+      <div class="f-1" style="margin-bottom:9px"><label class="f-lbl">Display Name</label><input class="f-in" id="pref-name" style="margin-top:3px"></div>
+      <div class="f-1" style="margin-bottom:9px"><label class="f-lbl">Default Timezone</label><select class="f-sel" id="pref-tz" style="margin-top:3px"><option value="MT">Mountain Time (MT)</option><option value="UTC">UTC</option></select></div>
+      <div class="f-1"><label class="f-lbl">Auto-refresh</label><select class="f-sel" id="pref-refresh" style="margin-top:3px"><option value="5">5 seconds</option><option value="10">10 seconds</option><option value="30">30 seconds</option></select></div>
+    </div>
+    <div class="modal-foot"><button class="btn btn-ghost" onclick="closeM('m-prefs')">Cancel</button><button class="btn btn-gold" onclick="savePrefs()">Save</button></div>
+  </div>
+</div>
+
+<div class="toast-wrap" id="toast-wrap"></div>
+<script>
+/* OWASP A03: sanitize all dynamic output */
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;').slice(0,600)}
+
+/* ── DATA ── */
+const ALERTS=[
+  {id:'A-001',sev:'CRITICAL',title:'Lateral movement — WORKSTATION-044',host:'WORKSTATION-044',ip:'10.4.22.44',user:'svc_backup',mitre:'T1021.002',mitreLabel:'SMB Lateral',ts:new Date(Date.now()-18*60000),status:'INVESTIGATING',detail:'SMB traversal from WORKSTATION-044 to domain controller SRVDC-01. Credential reuse detected. svc_backup account used. Destination share: ADMIN$.'},
+  {id:'A-002',sev:'CRITICAL',title:'SSH brute force — admin account',host:'SRVDC-01',ip:'185.220.101.47',user:'admin',mitre:'T1110.001',mitreLabel:'Brute Force',ts:new Date(Date.now()-32*60000),status:'NEW',detail:'847 failed SSH attempts in 4 minutes from TOR exit node 185.220.101.47. Lockout triggered. Attempts targeted root and admin.'},
+  {id:'A-003',sev:'HIGH',title:'Privilege escalation — svc_backup',host:'SRVDC-01',ip:'10.4.22.1',user:'svc_backup',mitre:'T1068',mitreLabel:'Priv Escalation',ts:new Date(Date.now()-47*60000),status:'INVESTIGATING',detail:'Backup service account executed sudo to obtain root shell. CVE-2024-3094 attempted. Root shell held 3 min before EDR kill.'},
+  {id:'A-004',sev:'HIGH',title:'DNS data exfiltration signal',host:'WORKSTATION-022',ip:'10.4.18.22',user:'j.harris',mitre:'T1048.003',mitreLabel:'DNS Exfil',ts:new Date(Date.now()-72*60000),status:'NEW',detail:'2.3 GB outbound via DNS tunnel. 847 queries to 8.8.8.8, avg subdomain length 62 chars. Pattern matches dnscat2 or iodine.'},
+  {id:'A-005',sev:'MEDIUM',title:'Anomalous login — off-hours geolocation',host:'LAPTOP-088',ip:'91.132.145.67',user:'j.harris',mitre:'T1078',mitreLabel:'Valid Accounts',ts:new Date(Date.now()-108*60000),status:'NEW',detail:'User j.harris authenticated from Kyiv, UA. 3.8σ deviation from 90-day Denver baseline. New device fingerprint. No VPN.'},
+  {id:'A-006',sev:'MEDIUM',title:'Malicious hash detected — endpoint',host:'WORKSTATION-019',ip:'10.4.19.10',user:'m.chen',mitre:'T1204.002',mitreLabel:'Malicious File',ts:new Date(Date.now()-134*60000),status:'RESOLVED',detail:'SHA256 a3f9c2d82c matched LockBit 3.0 dropper. EDR quarantined. No execution. Delivered via phishing attachment.'},
+  {id:'A-007',sev:'LOW',title:'TLS certificate expiry warning',host:'api.internal.corp',ip:'10.4.1.15',user:'system',mitre:'T1553.004',mitreLabel:'PKI Subversion',ts:new Date(Date.now()-180*60000),status:'NEW',detail:'TLS 1.2 cert expires in 7 days. Auto-renewal disabled. Issued by internal CA.'},
+];
+
+const MITRE_TACTICS=[
+  {id:'TA0001',name:'Initial Access',status:'hit',techniques:['T1190 Exploit Public App','T1566 Phishing','T1133 External Remote Svcs'],alerts:['A-002','A-005']},
+  {id:'TA0002',name:'Execution',status:'',techniques:['T1059 Command Interpreter','T1204 User Execution'],alerts:[]},
+  {id:'TA0003',name:'Persistence',status:'warn',techniques:['T1098 Account Manipulation','T1078 Valid Accounts'],alerts:['A-005']},
+  {id:'TA0004',name:'Priv Esc',status:'hit',techniques:['T1068 Exploit for Priv Esc','T1134 Access Token Manip'],alerts:['A-003']},
+  {id:'TA0005',name:'Defense Eva',status:'',techniques:['T1562 Impair Defenses','T1070 Indicator Removal'],alerts:[]},
+  {id:'TA0006',name:'Cred Access',status:'hit',techniques:['T1110 Brute Force','T1003 OS Cred Dump'],alerts:['A-002']},
+  {id:'TA0007',name:'Discovery',status:'',techniques:['T1083 File & Dir Discovery','T1018 Remote System Discovery'],alerts:[]},
+  {id:'TA0008',name:'Lateral Mvmt',status:'hit',techniques:['T1021.002 SMB/Admin Share','T1550 Pass the Hash'],alerts:['A-001']},
+  {id:'TA0009',name:'Collection',status:'warn',techniques:['T1005 Local Data Staged','T1039 Data from Network'],alerts:['A-004']},
+  {id:'TA0010',name:'Exfiltration',status:'',techniques:['T1048.003 Exfil over DNS','T1041 Exfil over C2'],alerts:['A-004']},
+];
+
+const IOC_DB=[
+  {indicator:'185.220.101.47',type:'IPv4',score:9.1,confidence:'HIGH',tags:['tor-exit','c2','blacklisted'],actor:'APT-41 (suspected)',malware:'Cobalt Strike',firstSeen:'2024-11-14',mitre:'T1090.003, T1110.001',rep:'Blacklisted in 12 threat feeds. TOR exit node #8841. 3 active campaigns. AS: Tor Project (AS60729).',feeds:'AlienVault OTX, MISP, Abuse.ch, Feodo Tracker',related:['A-002']},
+  {indicator:'exfil-c2.ru',type:'DOMAIN',score:8.7,confidence:'HIGH',tags:['c2','malware','fast-flux'],actor:'Unknown (RU origin)',malware:'IcedID',firstSeen:'2024-11-02',mitre:'T1071.001, T1568.002',rep:'Active C2 domain. Registered 2024-11-02, RU registrar. Fast-flux DNS. Resolves to 6 IPs over 24h.',feeds:'Abuse.ch URLhaus, MISP, PhishTank',related:['A-001','A-004']},
+  {indicator:'a3f9c2d82c1e8b4f',type:'SHA256',score:7.2,confidence:'MEDIUM',tags:['ransomware','dropper','unsigned'],actor:'LockBit 3.0',malware:'LockBit Dropper',firstSeen:'2025-03-12',mitre:'T1486, T1204.002',rep:'LockBit 3.0 ransomware dropper. Unsigned. Drops to %TEMP%\\svc32.exe. Targets backup processes.',feeds:'VirusTotal (38/72), Hybrid Analysis',related:['A-006']},
+  {indicator:'drop.onion/payload',type:'URL',score:5.4,confidence:'LOW',tags:['dark-web','payload-host'],actor:'Unknown',malware:'Unknown',firstSeen:'2025-01-08',mitre:'T1105, T1090.003',rep:'Dark web payload host. 38% uptime. Linked to 3 campaigns. Serves only to specific user agents.',feeds:'DarkOwl, Recorded Future (low conf.)',related:[]},
+  {indicator:'91.132.145.67',type:'IPv4',score:6.8,confidence:'MEDIUM',tags:['vpn-exit','suspicious'],actor:'Unknown',malware:'None detected',firstSeen:'2025-04-30',mitre:'T1078, T1133',rep:'Commercial VPN exit, Ukrainian ASN. Associated with credential stuffing. 3 abuse reports in 30 days.',feeds:'AbuseIPDB (score 67), Shodan',related:['A-005']},
+];
+
+const ENDPOINTS=[
+  {name:'WORKSTATION-044',status:'ISOLATED',dot:'ec',ip:'10.4.22.44',os:'Win11',crit:'CRITICAL'},
+  {name:'SRVDC-01',status:'SCANNING',dot:'ew',ip:'10.4.22.1',os:'WinSrv2022',crit:'HIGH'},
+  {name:'WORKSTATION-022',status:'MONITOR',dot:'ew',ip:'10.4.18.22',os:'Win11',crit:'MEDIUM'},
+  {name:'SRVAPP-07',status:'CLEAN',dot:'eo',ip:'10.4.5.7',os:'Ubuntu 22',crit:'HIGH'},
+  {name:'SRVDB-02',status:'CLEAN',dot:'eo',ip:'10.4.5.2',os:'RHEL 9',crit:'CRITICAL'},
+  {name:'309 others',status:'HEALTHY',dot:'eo',ip:'—',os:'Mixed',crit:'VARIES'},
+];
+
+const GEO=[
+  {country:'Russia (TOR exit)',sev:'HIGH',color:'var(--red)'},
+  {country:'Ukraine · j.harris',sev:'MED',color:'var(--amber)'},
+  {country:'China · port scan',sev:'MED',color:'var(--amber)'},
+  {country:'Netherlands · VPN',sev:'LOW',color:'var(--sky)'},
+];
+
+const BAR24=[22,18,31,27,19,24,38,45,29,23,31,27,41,38,33,28,36,44,52,47,39,55,61,72];
+const BAR7D=[28,35,41,29,48,33,61];
+
+const COMPLIANCE=[
+  {name:'NIST CSF',score:78,color:'var(--teal)'},
+  {name:'SOC 2 Type II',score:82,color:'var(--sky)'},
+  {name:'ISO 27001',score:71,color:'var(--amber)'},
+  {name:'CIS Controls v8',score:86,color:'var(--teal)'},
+  {name:'PCI-DSS v4',score:64,color:'var(--red)'},
+];
+
+const OWASP=[
+  {id:'A01',name:'Broken Access Control',ok:true,detail:'RBAC · least privilege · 15min session timeout'},
+  {id:'A02',name:'Crypto Failures',ok:true,detail:'AES-256 at rest · TLS 1.3 transit · no plaintext'},
+  {id:'A03',name:'Injection',ok:true,detail:'Input sanitized · CSP strict · no eval()'},
+  {id:'A04',name:'Insecure Design',ok:true,detail:'Threat modeled · pen-tested quarterly'},
+  {id:'A05',name:'Misconfiguration',ok:true,detail:'X-Frame:DENY · HSTS · hardened headers'},
+  {id:'A06',name:'Vuln Components',ok:false,detail:'SCA active · 2 advisories pending review'},
+  {id:'A07',name:'Auth Failure',ok:true,detail:'MFA required · OAuth 2.0 · OIDC · lockout'},
+  {id:'A08',name:'Data Integrity',ok:true,detail:'Signed artifacts · SRI on assets'},
+  {id:'A09',name:'Logging Failure',ok:true,detail:'This IS the log platform · tamper-evident'},
+  {id:'A10',name:'SSRF',ok:true,detail:"connect-src:none · allowlist outbound"},
+];
+
+const LOGS=[
+  {sev:'e',msg:'ALERT lateral_move src=10.4.22.44 dst=10.4.22.1 rule=SMB_TRAVERSE'},
+  {sev:'w',msg:'AUTH failed user=svc_backup attempts=12 host=SRVDC-01'},
+  {sev:'i',msg:'DNS query exfil-c2.ru BLOCKED egress policy fw-01'},
+  {sev:'c',msg:'IOC MATCH hash=a3f9c2d82c score=7.2 type=ransomware'},
+  {sev:'i',msg:'EDR scan SRVDC-01 complete files=14827 result=CLEAN'},
+  {sev:'w',msg:'OUTBOUND anomaly 2.3GB dst=8.8.8.8 proto=DNS queries=847'},
+  {sev:'e',msg:'BRUTE_FORCE ssh admin 847 attempts 4min lockout=ON'},
+  {sev:'c',msg:'GEO_ANOMALY user=j.harris src=Kyiv,UA sigma=3.8'},
+  {sev:'i',msg:'IAM eval user=t.simon resource=triage result=PERMIT'},
+  {sev:'w',msg:'CERT_EXPIRY api.internal.corp days=7 auto_renew=OFF'},
+  {sev:'c',msg:'THREAT_FEED update TLP:AMBER +14 IOCs ingested'},
+  {sev:'i',msg:'SIEM ingest healthy eps=284/min backlog=0'},
+];
+
+/* ── STATE ── */
+let S={tz:'MT',curAlert:null,step:0,sortKey:'time',sortDir:-1,logIdx:0,sesSecs:900};
+let CASES=[];
+
+/* ── PERSIST ── */
+function loadAll(){
+  try{const p=JSON.parse(localStorage.getItem('soc7v3_prefs')||'{}');S.tz=p.tz||'MT';}catch(e){}
+  try{const c=JSON.parse(localStorage.getItem('soc7v3_cases')||'null');if(c)CASES=c;}catch(e){}
+  if(!CASES.length) CASES=[
+    {id:'CASE-001',title:'Lateral Movement Investigation',pri:'CRITICAL',status:'OPEN',created:new Date(Date.now()-7200000),analyst:'T.K. Simon',alertId:'A-001',desc:'Active lateral movement from WORKSTATION-044. svc_backup credentials compromised.'},
+    {id:'CASE-002',title:'DNS Exfiltration Campaign',pri:'HIGH',status:'INVESTIGATING',created:new Date(Date.now()-18000000),analyst:'T.K. Simon',alertId:'A-004',desc:'DNS tunneling activity. 2.3 GB data at risk.'},
+    {id:'CASE-003',title:'External Brute Force — SSH',pri:'HIGH',status:'OPEN',created:new Date(Date.now()-3600000),analyst:'T.K. Simon',alertId:'A-002',desc:'TOR exit node targeting admin SSH.'},
+  ];
+}
+function savePrefsData(){try{localStorage.setItem('soc7v3_prefs',JSON.stringify({tz:S.tz}));}catch(e){}}
+function saveCases(){try{localStorage.setItem('soc7v3_cases',JSON.stringify(CASES));}catch(e){}}
+function saveNote(key,stepIdx){
+  try{
+    const v=document.getElementById('note-'+key)?.value||'';
+    localStorage.setItem('soc7v3_note_'+key+'_'+(S.curAlert?.id||''),v.slice(0,4000));
+    const lbl=document.getElementById('sv-'+stepIdx);
+    if(lbl){lbl.classList.add('show');setTimeout(()=>lbl.classList.remove('show'),1400);}
+  }catch(e){}
+}
+function loadNote(key,alertId){try{return localStorage.getItem('soc7v3_note_'+key+'_'+(alertId||''))||'';}catch(e){return '';}}
+
+/* ── TIME ── */
+function fmtTime(d){
+  if(S.tz==='UTC') return d.toUTCString().split(' ')[4]+' UTC';
+  return d.toLocaleTimeString('en-US',{timeZone:'America/Denver',hour12:false,hour:'2-digit',minute:'2-digit',second:'2-digit'})+' MT';
+}
+function fmtDT(d){
+  if(S.tz==='UTC') return d.toUTCString().replace(' GMT','');
+  return d.toLocaleString('en-US',{timeZone:'America/Denver',hour12:false,month:'2-digit',day:'2-digit',year:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit'})+' MT';
+}
+function fmtRel(d){
+  const m=Math.floor((Date.now()-d)/60000);
+  if(m<1)return 'just now';
+  if(m<60)return m+'m ago';
+  return Math.floor(m/60)+'h '+(m%60?m%60+'m':'')+ ' ago';
+}
+function toggleTZ(){
+  S.tz=S.tz==='MT'?'UTC':'MT';savePrefsData();
+  const b=document.getElementById('tz-btn');
+  b.textContent=S.tz;b.classList.toggle('utc',S.tz==='UTC');
+  renderAll();toast('Timezone: '+S.tz,'ok');
+}
+function tick(){
+  const t=fmtTime(new Date());
+  document.getElementById('topclock').textContent=t;
+  document.getElementById('fclock').textContent=t;
+  if(S.sesSecs>0)S.sesSecs--;
+  const mm=String(Math.floor(S.sesSecs/60)).padStart(2,'0'),ss=String(S.sesSecs%60).padStart(2,'0');
+  const el=document.getElementById('ses-timer');
+  if(el){el.textContent=mm+':'+ss;el.style.color=S.sesSecs<120?'var(--red)':'var(--txt3)';}
+}
+setInterval(tick,1000);tick();
+
+/* ── TOAST ── */
+function toast(msg,type='ok'){
+  const ic={ok:'✓',err:'✕',warn:'⚠'};
+  const w=document.getElementById('toast-wrap');
+  const t=document.createElement('div');
+  t.className='toast t-'+type;t.textContent=ic[type]+' '+msg;
+  w.appendChild(t);
+  setTimeout(()=>{t.style.opacity='0';t.style.transition='opacity .3s';},2000);
+  setTimeout(()=>t.remove(),2400);
+}
+
+/* ── VIEW SWITCHING ── */
+function switchView(name,navBtn,sbItem){
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  const v=document.getElementById('view-'+name);if(v)v.classList.add('active');
+  document.querySelectorAll('.tn').forEach(b=>b.classList.remove('active'));
+  if(navBtn)navBtn.classList.add('active');
+  else document.querySelectorAll('.tn').forEach(b=>{if(b.textContent.toLowerCase().startsWith(name.slice(0,4)))b.classList.add('active');});
+  document.querySelectorAll('.sb-item').forEach(b=>b.classList.remove('active'));
+  const sbi=document.getElementById('sb-'+name);if(sbi)sbi.classList.add('active');
+  else if(sbItem)sbItem.classList.add('active');
+  buildTabs(name);
+  if(name==='alerts')renderAlerts();
+  if(name==='cases')renderCases();
+  if(name==='exec')renderExec();
+  if(name==='hunt')renderIOCTable();
+  if(name==='investigate')renderInvPicker();
+}
+function buildTabs(view){
+  const map={overview:['Overview'],alerts:['Queue','Filters'],investigate:['Workflow','Notes'],hunt:['Enrich IOC','Database'],exec:['Risk','Compliance','SLA'],cases:['All Cases','Open']};
+  const bar=document.getElementById('tabs-bar');bar.innerHTML='';
+  (map[view]||[]).forEach((t,i)=>{
+    const b=document.createElement('button');b.className='tab-btn'+(i===0?' active':'');b.textContent=t;
+    b.onclick=function(){document.querySelectorAll('.tab-btn').forEach(x=>x.classList.remove('active'));b.classList.add('active');};
+    bar.appendChild(b);
+  });
+}
+
+/* ── METRICS (derived from data) ── */
+function metrics(){
+  return {
+    crits:ALERTS.filter(a=>a.sev==='CRITICAL').length,
+    openCases:CASES.filter(c=>c.status!=='CLOSED').length,
+    investigating:CASES.filter(c=>c.status==='INVESTIGATING').length,
+    flagged:ENDPOINTS.filter(e=>e.dot==='ec'||e.dot==='ew').length,
+    newAlerts:ALERTS.filter(a=>a.status==='NEW').length,
+  };
+}
+
+/* ── SPARKLINES ── */
+function buildSpark(id,data,hi,lo){
+  const el=document.getElementById(id);if(!el)return;el.innerHTML='';
+  const mx=Math.max(...data);
+  data.forEach(v=>{const b=document.createElement('div');b.className='sp';b.style.height=Math.round(v/mx*100)+'%';b.style.background=v===mx?hi:lo;el.appendChild(b);});
+}
+
+/* ── BAR CHART ── */
+function buildBars(id,data){
+  const el=document.getElementById(id);if(!el)return;el.innerHTML='';
+  const mx=Math.max(...data);
+  data.forEach((v,i)=>{const b=document.createElement('div');b.className='bb'+(v>54?' hi':i===data.length-1?' act':'');b.style.height=Math.round(v/mx*100)+'%';el.appendChild(b);});
+}
+
+/* ── OVERVIEW ── */
+function renderOverview(){
+  const m=metrics();
+  document.getElementById('sv-crit').textContent=m.crits;
+  document.getElementById('sv-crit-sub').textContent=m.newAlerts+' unacknowledged';
+  document.getElementById('sv-cases').textContent=m.openCases;
+  document.getElementById('sv-cases-sub').textContent=m.investigating+' in progress';
+  document.getElementById('sv-ioc').textContent=IOC_DB.length;
+  document.getElementById('sv-ep-sub').textContent=m.flagged+' flagged';
+  document.getElementById('sb-crit-ct').textContent=m.crits;
+  document.getElementById('sb-case-ct').textContent=m.openCases;
+
+  buildSpark('sp-crit',[1,2,1,3,2,4,3,5,4,5,6,m.crits],'var(--red)','rgba(232,68,90,0.3)');
+  buildSpark('sp-cases',[1,1,2,2,3,3,3,3,3,m.openCases,m.openCases,m.openCases],'var(--amber)','rgba(240,144,0,0.3)');
+  buildSpark('sp-ioc',[2,3,3,4,4,4,4,5,5,5,5,IOC_DB.length],'var(--sky)','rgba(74,158,255,0.3)');
+  buildSpark('sp-ep',[312,312,311,312,312,312,312,311,312,312,312,312],'var(--teal)','rgba(0,201,167,0.3)');
+
+  buildBars('bars24',BAR24);
+
+  /* recent alerts list */
+  const al=document.getElementById('ov-alert-list');
+  if(al){
+    al.innerHTML='';
+    const SMAP={CRITICAL:'p-crit',HIGH:'p-high',MEDIUM:'p-med',LOW:'p-low'};
+    ALERTS.slice(0,5).forEach(a=>{
+      const row=document.createElement('div');
+      row.style.cssText='display:grid;grid-template-columns:auto 1fr auto;gap:7px;align-items:center;padding:6px 7px;background:var(--mid);border:1px solid var(--bdr);border-radius:var(--r);margin-bottom:4px;cursor:pointer;transition:background .12s';
+      row.onmouseenter=()=>row.style.background='var(--surface)';
+      row.onmouseleave=()=>row.style.background='var(--mid)';
+      row.innerHTML='<span class="sev-pill '+SMAP[a.sev]+'">'+esc(a.sev.slice(0,4))+'</span>'
+        +'<span style="font-size:11px;color:var(--txt)">'+esc(a.title)+'</span>'
+        +'<span class="fn" style="white-space:nowrap">'+esc(fmtRel(a.ts))+'</span>';
+      row.onclick=()=>openAlertModal(a);
+      al.appendChild(row);
+    });
+  }
+
+  /* MITRE mini */
+  const mm=document.getElementById('mitre-mini');
+  if(mm){mm.innerHTML='';MITRE_TACTICS.forEach(t=>{const c=document.createElement('div');c.className='mc'+(t.status?' '+t.status:'');c.innerHTML=esc(t.id)+'<br>'+esc(t.name);c.title=t.id+': '+t.name+(t.alerts.length?' ('+t.alerts.length+' alerts)':'');c.onclick=()=>openMitreDrill(t);mm.appendChild(c);});}
+
+  /* Geo */
+  const gp=document.getElementById('ov-geo');
+  if(gp)gp.innerHTML=GEO.map(g=>'<div class="geo-row"><span style="color:'+g.color+'">■</span><span style="color:var(--txt2);flex:1;padding:0 6px">'+esc(g.country)+'</span><span style="color:'+g.color+'">'+esc(g.sev)+'</span></div>').join('');
+
+  /* OWASP mini */
+  const om=document.getElementById('ov-owasp');
+  if(om)om.innerHTML=OWASP.map(o=>'<div style="display:flex;align-items:center;gap:5px;padding:2px 0;font-family:\'IBM Plex Mono\',monospace;font-size:8px"><span style="color:'+(o.ok?'var(--teal)':'var(--amber)')+'">'+esc(o.ok?'●':'◑')+'</span><span style="color:var(--txt2)">'+esc(o.id)+'</span><span style="color:var(--txt3)"> '+esc(o.name)+'</span></div>').join('');
+}
+
+/* ── ALERTS TABLE ── */
+const SORD={CRITICAL:0,HIGH:1,MEDIUM:2,LOW:3};
+function sortBy(k){if(S.sortKey===k)S.sortDir*=-1;else{S.sortKey=k;S.sortDir=-1;}renderAlerts();}
+function clearFilters(){['alert-search','f-sev','f-status','f-sort'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});renderAlerts();}
+function renderAlerts(){
+  const q=(document.getElementById('alert-search')?.value||'').toLowerCase();
+  const fsev=document.getElementById('f-sev')?.value||'';
+  const fst=document.getElementById('f-status')?.value||'';
+  let list=ALERTS.filter(a=>{
+    if(fsev&&a.sev!==fsev)return false;
+    if(fst&&a.status!==fst)return false;
+    if(q&&!(a.title.toLowerCase().includes(q)||a.host.toLowerCase().includes(q)||a.user.toLowerCase().includes(q)||a.mitre.toLowerCase().includes(q)))return false;
+    return true;
+  });
+  const k=S.sortKey,d=S.sortDir;
+  list.sort((a,b)=>k==='sev'?(SORD[a.sev]-SORD[b.sev])*d:k==='host'?a.host.localeCompare(b.host)*d:(b.ts-a.ts)*-d);
+  document.getElementById('alert-ct-lbl').textContent=list.length+' alerts';
+  const SMAP={CRITICAL:'p-crit',HIGH:'p-high',MEDIUM:'p-med',LOW:'p-low'};
+  const STMAP={NEW:'st-new',INVESTIGATING:'st-inv',RESOLVED:'st-res',CLOSED:'st-cls'};
+  const tb=document.getElementById('alert-tbody');tb.innerHTML='';
+  list.forEach(a=>{
+    const tr=document.createElement('tr');tr.className='atr'+(S.curAlert?.id===a.id?' sel':'');
+    tr.innerHTML='<td><span class="sev-pill '+SMAP[a.sev]+'">'+esc(a.sev)+'</span></td>'
+      +'<td class="mono" style="font-size:8px;white-space:nowrap">'+esc(fmtDT(a.ts))+'</td>'
+      +'<td style="max-width:200px"><div style="font-weight:500;color:var(--txt);font-size:11px">'+esc(a.title)+'</div><div class="fn">'+esc(a.host)+' · '+esc(a.user)+'</div></td>'
+      +'<td class="mono" style="font-size:9px">'+esc(a.host)+'</td>'
+      +'<td class="mono" style="font-size:9px;color:var(--sky)">'+esc(a.mitre)+'</td>'
+      +'<td><span class="'+STMAP[a.status]+'">'+esc(a.status)+'</span></td>'
+      +'<td><div style="display:flex;gap:3px">'
+      +'<button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();openAlertModal(ALERTS.find(x=>x.id===\''+esc(a.id)+'\'))">Details</button>'
+      +'<button class="btn btn-gold btn-sm" onclick="event.stopPropagation();startInv(ALERTS.find(x=>x.id===\''+esc(a.id)+'\'))">Investigate</button>'
+      +'</div></td>';
+    tr.onclick=e=>{if(e.target.tagName!=='BUTTON')openAlertModal(a);};
+    tb.appendChild(tr);
+  });
+
+  /* also refresh inv picker */
+  renderInvPicker();
+}
+
+/* ── ALERT MODAL ── */
+let _modalAlert=null;
+function openAlertModal(a){
+  if(!a)return;_modalAlert=a;
+  document.getElementById('m-alert-title').textContent='Alert '+a.id+' — '+a.sev;
+  const SMAP={CRITICAL:'p-crit',HIGH:'p-high',MEDIUM:'p-med',LOW:'p-low'};
+  const STMAP={NEW:'st-new',INVESTIGATING:'st-inv',RESOLVED:'st-res',CLOSED:'st-cls'};
+  document.getElementById('m-alert-body').innerHTML=
+    '<div class="f-row"><div class="f-1"><div class="f-lbl">Severity</div><div class="f-val"><span class="sev-pill '+SMAP[a.sev]+'">'+esc(a.sev)+'</span></div></div><div class="f-1"><div class="f-lbl">Status</div><div class="f-val"><span class="'+STMAP[a.status]+'">'+esc(a.status)+'</span></div></div></div>'
+    +'<div class="f-row"><div class="f-1"><div class="f-lbl">Host</div><div class="f-val">'+esc(a.host)+'</div></div><div class="f-1"><div class="f-lbl">Source IP</div><div class="f-val">'+esc(a.ip)+'</div></div></div>'
+    +'<div class="f-row"><div class="f-1"><div class="f-lbl">User</div><div class="f-val">'+esc(a.user)+'</div></div><div class="f-1"><div class="f-lbl">MITRE</div><div class="f-val" style="color:var(--sky)">'+esc(a.mitre)+' · '+esc(a.mitreLabel)+'</div></div></div>'
+    +'<div class="f-row"><div class="f-1"><div class="f-lbl">Timestamp</div><div class="f-val">'+esc(fmtDT(a.ts))+'</div></div><div class="f-1"><div class="f-lbl">Alert ID</div><div class="f-val">'+esc(a.id)+'</div></div></div>'
+    +'<div class="divider"></div><div class="f-lbl" style="margin-bottom:5px">Detail</div><div style="font-size:11px;color:var(--txt);line-height:1.6;padding:7px 9px;background:var(--mid);border-radius:var(--r)">'+esc(a.detail)+'</div>';
+  openM('m-alert');
+}
+function investigateFromModal(){closeM('m-alert');if(_modalAlert)startInv(_modalAlert);}
+function resolveFromModal(){if(_modalAlert){_modalAlert.status='RESOLVED';renderAlerts();renderOverview();closeM('m-alert');toast('Alert '+_modalAlert.id+' resolved','ok');}}
+
+/* ── INVESTIGATION WORKFLOW ── */
+function renderInvPicker(){
+  const SMAP={CRITICAL:'p-crit',HIGH:'p-high',MEDIUM:'p-med',LOW:'p-low'};
+  const STMAP={NEW:'st-new',INVESTIGATING:'st-inv',RESOLVED:'st-res',CLOSED:'st-cls'};
+  const el=document.getElementById('inv-picker-list');if(!el)return;
+  el.innerHTML='';
+  ALERTS.forEach(a=>{
+    const row=document.createElement('div');
+    row.style.cssText='display:grid;grid-template-columns:auto 1fr auto auto;gap:9px;align-items:center;padding:8px 10px;background:var(--mid);border:1px solid var(--bdr);border-radius:var(--r);cursor:pointer;margin-bottom:4px;transition:border-color .12s';
+    row.onmouseenter=()=>row.style.borderColor='var(--bdr2)';
+    row.onmouseleave=()=>row.style.borderColor='var(--bdr)';
+    row.innerHTML='<span class="sev-pill '+SMAP[a.sev]+'">'+esc(a.sev)+'</span>'
+      +'<div><div style="font-size:11px;font-weight:500;color:var(--txt)">'+esc(a.title)+'</div><div class="fn">'+esc(a.host)+' · '+esc(fmtRel(a.ts))+'</div></div>'
+      +'<span class="'+STMAP[a.status]+'">'+esc(a.status)+'</span>'
+      +'<button class="btn btn-gold btn-sm">Investigate</button>';
+    row.onclick=()=>startInv(a);
+    el.appendChild(row);
+  });
+}
+function startInv(a){
+  S.curAlert=a;S.step=0;
+  document.getElementById('inv-picker').style.display='none';
+  document.getElementById('inv-wf').style.display='block';
+  switchView('investigate');
+  populateWF(a);setStep(0);
+}
+function populateWF(a){
+  const SMAP={CRITICAL:'p-crit',HIGH:'p-high',MEDIUM:'p-med',LOW:'p-low'};
+  const ep=ENDPOINTS.find(e=>e.name===a.host)||{name:a.host,ip:a.ip,os:'Unknown',crit:'MEDIUM'};
+  const cc={CRITICAL:'var(--red)',HIGH:'var(--amber)',MEDIUM:'var(--sky)',LOW:'var(--teal)'}[ep.crit]||'var(--txt)';
+
+  /* step 0 */
+  document.getElementById('wf-sev-pill').className='sev-pill '+SMAP[a.sev];
+  document.getElementById('wf-sev-pill').textContent=a.sev;
+  document.getElementById('wf-alert-body').innerHTML=
+    '<div class="f-row"><div class="f-1"><div class="f-lbl">Alert ID</div><div class="f-val">'+esc(a.id)+'</div></div><div class="f-1"><div class="f-lbl">Timestamp</div><div class="f-val">'+esc(fmtDT(a.ts))+'</div></div></div>'
+    +'<div class="f-row"><div class="f-1"><div class="f-lbl">Host</div><div class="f-val">'+esc(a.host)+'</div></div><div class="f-1"><div class="f-lbl">Source IP</div><div class="f-val">'+esc(a.ip)+'</div></div></div>'
+    +'<div class="f-row"><div class="f-1"><div class="f-lbl">User</div><div class="f-val">'+esc(a.user)+'</div></div><div class="f-1"><div class="f-lbl">MITRE</div><div class="f-val" style="color:var(--sky)">'+esc(a.mitre)+' · '+esc(a.mitreLabel)+'</div></div></div>'
+    +'<div class="divider"></div><div style="font-size:11px;color:var(--txt);line-height:1.6">'+esc(a.detail)+'</div>';
+  document.getElementById('wf-asset-body').innerHTML=
+    '<div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:9px"><div><div style="font-size:12px;font-weight:500;color:var(--txt)">'+esc(ep.name)+'</div><div class="fn">'+esc(ep.ip)+' · '+esc(ep.os)+'</div></div><div style="font-family:\'Cinzel\',serif;font-size:18px;font-weight:700;color:'+cc+'">'+esc(ep.crit)+'</div></div>'
+    +'<div class="crit-grid">'
+    +'<div class="crit-item"><div class="crit-lbl">Criticality</div><div class="crit-val" style="color:'+cc+'">'+esc(ep.crit)+'</div></div>'
+    +'<div class="crit-item"><div class="crit-lbl">Business Impact</div><div class="crit-val">'+(ep.crit==='CRITICAL'?'Tier-1 Service':'Tier-2')+'</div></div>'
+    +'<div class="crit-item"><div class="crit-lbl">Data Class</div><div class="crit-val">'+(ep.name.startsWith('SRV')?'PII / Config':'Workstation')+'</div></div>'
+    +'<div class="crit-item"><div class="crit-lbl">RTO</div><div class="crit-val">'+(ep.crit==='CRITICAL'?'< 1h':'< 4h')+'</div></div>'
+    +'</div>';
+
+  /* step 1 */
+  document.getElementById('wf-host-body').innerHTML=
+    '<div class="f-row"><div class="f-1"><div class="f-lbl">Hostname</div><div class="f-val">'+esc(a.host)+'</div></div><div class="f-1"><div class="f-lbl">IP</div><div class="f-val">'+esc(a.ip)+'</div></div></div>'
+    +'<div class="f-row"><div class="f-1"><div class="f-lbl">OS</div><div class="f-val">'+esc(ep.os)+'</div></div><div class="f-1"><div class="f-lbl">EDR</div><div class="f-val" style="color:var(--teal)">Active v4.2.1</div></div></div>'
+    +'<div class="f-row"><div class="f-1"><div class="f-lbl">Last Patch</div><div class="f-val">2025-05-14</div></div><div class="f-1"><div class="f-lbl">Open Vulns</div><div class="f-val" style="color:var(--amber)">3 (1 critical)</div></div></div>'
+    +'<div class="f-row"><div class="f-1"><div class="f-lbl">Owner</div><div class="f-val">IT Operations</div></div><div class="f-1"><div class="f-lbl">Location</div><div class="f-val">Denver HQ · Fl 3</div></div></div>';
+  document.getElementById('wf-net-body').innerHTML=
+    '<div class="f-row"><div class="f-1"><div class="f-lbl">VLAN</div><div class="f-val">VLAN-44 Corp-Users</div></div><div class="f-1"><div class="f-lbl">FW Zone</div><div class="f-val">Internal</div></div></div>'
+    +'<div class="f-row"><div class="f-1"><div class="f-lbl">Active Conns</div><div class="f-val" style="color:var(--amber)">14 (3 suspicious)</div></div><div class="f-1"><div class="f-lbl">DNS Server</div><div class="f-val">10.4.1.1</div></div></div>'
+    +'<div class="f-row"><div class="f-1"><div class="f-lbl">Outbound</div><div class="f-val" style="color:var(--red)">2.3 GB anomalous</div></div><div class="f-1"><div class="f-lbl">Last Seen</div><div class="f-val">'+esc(fmtDT(new Date()))+'</div></div></div>';
+
+  /* step 2 */
+  const uname={svc_backup:'Service Account (Backup Ops)','j.harris':'James Harris','m.chen':'M. Chen',admin:'Local Admin',system:'SYSTEM'}[a.user]||a.user;
+  document.getElementById('wf-user-body').innerHTML=
+    '<div class="f-row"><div class="f-1"><div class="f-lbl">Username</div><div class="f-val">'+esc(a.user)+'</div></div><div class="f-1"><div class="f-lbl">Full Name</div><div class="f-val">'+esc(uname)+'</div></div></div>'
+    +'<div class="f-row"><div class="f-1"><div class="f-lbl">Dept</div><div class="f-val">'+(a.user==='svc_backup'||a.user==='admin'?'IT Ops':'Finance')+'</div></div><div class="f-1"><div class="f-lbl">Type</div><div class="f-val">'+(a.user==='svc_backup'?'Service Account':'Standard User')+'</div></div></div>'
+    +'<div class="f-row"><div class="f-1"><div class="f-lbl">Privileged</div><div class="f-val" style="color:var(--amber)">'+(a.user==='svc_backup'||a.user==='admin'?'YES — Elevated':'No')+'</div></div><div class="f-1"><div class="f-lbl">MFA</div><div class="f-val" style="color:var(--teal)">Enrolled</div></div></div>'
+    +'<div class="f-row"><div class="f-1"><div class="f-lbl">Pwd Changed</div><div class="f-val" style="color:var(--red)">2024-09-01 (270d)</div></div><div class="f-1"><div class="f-lbl">Risk Score</div><div class="f-val" style="color:var(--red)">8.4 / 10</div></div></div>';
+  document.getElementById('wf-baseline-body').innerHTML=
+    '<div style="font-family:\'IBM Plex Mono\',monospace;font-size:9px;color:var(--txt2);line-height:2">'
+    +'<div>Normal hours: 08:00–18:00 MT</div>'
+    +'<div>Normal location: Denver, CO</div>'
+    +'<div>Avg daily logins: 3.2</div>'
+    +'<div style="color:var(--red)">Today logins: 7 (2.2σ above avg)</div>'
+    +'<div style="color:var(--red)">New geolocation: Kyiv, UA (first)</div>'
+    +'<div style="color:var(--amber)">Email: 4 suspicious attachments (7d)</div>'
+    +'</div>';
+
+  /* step 3 */
+  document.getElementById('wf-ptree').innerHTML=
+    '<div class="pt-root">svchost.exe (PID 844) — SYSTEM</div>'
+    +'<div class="pt-child">services.exe (PID 684)</div>'
+    +'<div class="pt-child sus">backup_svc.exe (PID 3120) — '+esc(a.user)+'</div>'
+    +'<div class="pt-gc mal">cmd.exe (PID 4840) [SUSPICIOUS]</div>'
+    +'<div class="pt-gc mal">sudo.exe (PID 5104) — ROOT SHELL [MALICIOUS]</div>'
+    +'<div class="pt-gc mal">powershell.exe (PID 5288) — encoded payload [KILLED by EDR]</div>'
+    +'<div class="pt-child">explorer.exe (PID 3288) — '+esc(a.user)+'</div>'
+    +'<div class="pt-gc">chrome.exe (PID 7120)</div>';
+
+  /* step 4 */
+  const tlItems=[
+    {sev:'i',ts:new Date(a.ts-25*60000),msg:'User '+a.user+' authenticated',meta:'src:'+a.ip+' · MFA passed'},
+    {sev:'w',ts:new Date(a.ts-18*60000),msg:'Anomalous process: backup_svc.exe launched',meta:'parent: services.exe · unusual args'},
+    {sev:'e',ts:new Date(a.ts-15*60000),msg:'Privilege escalation: sudo executed',meta:'user: '+a.user+' → root · '+a.mitre},
+    {sev:'e',ts:new Date(a.ts-14*60000),msg:'Root shell — powershell.exe (encoded payload)',meta:'EDR detection triggered'},
+    {sev:'c',ts:new Date(a.ts-13*60000),msg:'EDR killed: powershell.exe PID 5288',meta:'Quarantine applied · process tree captured'},
+    {sev:'w',ts:a.ts,msg:'SIEM alert: '+a.title,meta:'rule: '+a.mitre+' · sev: '+a.sev},
+    {sev:'i',ts:new Date(a.ts+2*60000),msg:'Alert assigned — T.K. Simon',meta:'Case auto-created · SLA: 4h'},
+  ];
+  document.getElementById('wf-timeline').innerHTML=tlItems.map(t=>'<div class="tl-item"><div class="tl-dot '+t.sev+'"></div><div class="tl-ts">'+esc(fmtDT(t.ts))+'</div><div class="tl-msg">'+esc(t.msg)+'</div><div class="tl-meta">'+esc(t.meta)+'</div></div>').join('');
+
+  /* step 5 */
+  document.getElementById('wf-evidence').innerHTML=
+    '<div class="ev-item"><span style="font-size:14px;color:var(--red);flex-shrink:0">⚠</span><div><div class="ev-title">EDR Process Kill Log</div><div class="ev-meta">edr_kill_5288_'+esc(a.host)+'.json · 4.2 KB · sha256:f8e3…</div></div></div>'
+    +'<div class="ev-item"><span style="font-size:14px;color:var(--amber);flex-shrink:0">📋</span><div><div class="ev-title">SIEM Raw Events (14 entries)</div><div class="ev-meta">siem_events_'+esc(a.id)+'.csv · ±30min window · 18 KB</div></div></div>'
+    +'<div class="ev-item"><span style="font-size:14px;color:var(--sky);flex-shrink:0">🔍</span><div><div class="ev-title">Network Flow Capture</div><div class="ev-meta">netflow_'+esc(a.host)+'_'+a.ts.toISOString().slice(0,10)+'.pcap · 2.3 MB</div></div></div>'
+    +'<div class="ev-item"><span style="font-size:14px;color:var(--teal);flex-shrink:0">🔐</span><div><div class="ev-title">IAM Audit Trail</div><div class="ev-meta">User: '+esc(a.user)+' · 23 auth records · Active Directory</div></div></div>';
+
+  /* step 6 */
+  const imm=['Isolate '+a.host+' from network','Revoke all sessions: '+a.user,'Reset credentials — '+a.user+' + VLAN-44 service accounts','Block IOC: '+a.ip+' at perimeter firewall','Enable enhanced logging on SRVDC-01'];
+  const lng=['Implement Privileged Access Workstations (PAW) for service accounts','Deploy DNS filtering to block exfiltration tunnels','Enforce 90-day password rotation for all service accounts','Deploy honeytokens in backup service infrastructure','Conduct red team exercise targeting lateral movement paths'];
+  document.getElementById('wf-immediate').innerHTML=imm.map(r=>'<div style="display:flex;gap:7px;padding:5px 0;border-bottom:1px solid var(--bdr);align-items:start"><span style="color:var(--red);flex-shrink:0">→</span><span style="font-size:11px;color:var(--txt)">'+esc(r)+'</span></div>').join('');
+  document.getElementById('wf-longterm').innerHTML=lng.map(r=>'<div style="display:flex;gap:7px;padding:5px 0;border-bottom:1px solid var(--bdr);align-items:start"><span style="color:var(--sky);flex-shrink:0">◈</span><span style="font-size:11px;color:var(--txt)">'+esc(r)+'</span></div>').join('');
+
+  /* load saved notes */
+  ['alert','host','user','summary'].forEach(k=>{const el=document.getElementById('note-'+k);if(el)el.value=loadNote(k,a.id);});
+}
+function setStep(n){
+  S.step=n;
+  document.querySelectorAll('.wf-content').forEach((el,i)=>el.classList.toggle('active',i===n));
+  document.querySelectorAll('.ws[data-step]').forEach(el=>{
+    const i=parseInt(el.dataset.step);
+    el.classList.remove('active','done');
+    if(i===n)el.classList.add('active');
+    else if(i<n)el.classList.add('done');
+  });
+}
+
+/* ── IOC LOOKUP ── */
+function doLookup(){
+  const raw=document.getElementById('ioc-q').value.trim();
+  const q=raw.replace(/[^\w.:/\-@#]/g,'').toLowerCase().slice(0,200);
+  if(!q){toast('Enter an indicator to look up','warn');return;}
+  const match=IOC_DB.find(i=>q.includes(i.indicator.toLowerCase())||i.indicator.toLowerCase().includes(q));
+  const box=document.getElementById('ioc-box');box.classList.add('show');
+  if(match){
+    const cls=match.score>=8?'sc-r':match.score>=6?'sc-a':'sc-s';
+    document.getElementById('ioc-sc').className='score-circle '+cls;
+    document.getElementById('ioc-sc').textContent=match.score;
+    document.getElementById('ioc-ind').textContent=match.indicator;
+    document.getElementById('ioc-type-lbl').textContent=match.type+' · '+match.confidence+' confidence';
+    document.getElementById('ioc-tags').innerHTML=match.tags.map(t=>'<span class="tag tag-r">'+esc(t)+'</span>').join('');
+    document.getElementById('ioc-conf').textContent=match.confidence+' ('+Math.round(match.score*10)+'% certainty)';
+    document.getElementById('ioc-fs').textContent=match.firstSeen;
+    document.getElementById('ioc-actor').textContent=match.actor;
+    document.getElementById('ioc-mal').textContent=match.malware;
+    document.getElementById('ioc-mit').textContent=match.mitre;
+    document.getElementById('ioc-rep').textContent=match.rep;
+    document.getElementById('ioc-rel').textContent=match.related.length?match.related.join(', '):'None in current scope';
+    document.getElementById('ioc-feeds').textContent=match.feeds;
+  } else {
+    document.getElementById('ioc-sc').className='score-circle sc-s';
+    document.getElementById('ioc-sc').textContent='?';
+    document.getElementById('ioc-ind').textContent=q;
+    document.getElementById('ioc-type-lbl').textContent='Unknown indicator — not in local DB';
+    document.getElementById('ioc-tags').innerHTML='<span class="tag tag-g">unknown</span>';
+    ['ioc-conf','ioc-fs','ioc-actor','ioc-mal','ioc-mit','ioc-rep','ioc-rel','ioc-feeds'].forEach(id=>{document.getElementById(id).textContent='No data. Query external feeds for enrichment.';});
+  }
+}
+function clearLookup(){document.getElementById('ioc-q').value='';document.getElementById('ioc-box').classList.remove('show');}
+function renderIOCTable(){
+  const ct=document.getElementById('ioc-db-ct');if(ct)ct.textContent=IOC_DB.length+' indicators';
+  const tb=document.getElementById('ioc-tbody');if(!tb)return;
+  const ccl={HIGH:'var(--teal)',MEDIUM:'var(--amber)',LOW:'var(--txt3)'};
+  tb.innerHTML=IOC_DB.map(i=>{
+    const sc=i.score>=8?'var(--red)':i.score>=6?'var(--amber)':'var(--sky)';
+    return '<tr>'
+      +'<td class="mono" style="color:var(--sky)">'+esc(i.type)+'</td>'
+      +'<td class="mono" style="font-size:9px">'+esc(i.indicator)+'</td>'
+      +'<td><div style="display:flex;align-items:center;gap:4px"><div class="sbar-w"><div class="sbar" style="width:'+Math.round(i.score*10)+'%;background:'+sc+'"></div></div><span style="font-size:9px;color:'+sc+'">'+i.score+'</span></div></td>'
+      +'<td style="color:'+ccl[i.confidence]+'">'+esc(i.confidence)+'</td>'
+      +'<td>'+i.tags.map(t=>'<span class="tag tag-r">'+esc(t)+'</span>').join('')+'</td>'
+      +'<td><button class="btn btn-gold btn-sm" onclick="document.getElementById(\'ioc-q\').value=\''+esc(i.indicator)+'\';doLookup();switchView(\'hunt\')">Enrich</button></td>'
+      +'</tr>';
+  }).join('');
+}
+
+/* ── MITRE ── */
+function openMitreModal(){
+  const body=document.getElementById('m-mitre-body');
+  body.innerHTML='<p class="fn" style="margin-bottom:9px">Click any tactic for drilldown and related alerts.</p>'
+    +'<div class="mitre-grid" style="margin-bottom:8px">'+MITRE_TACTICS.map(t=>'<div class="mc'+(t.status?' '+t.status:'')+'" onclick="openMitreDrill(MITRE_TACTICS.find(x=>x.id===\''+t.id+'\'));closeM(\'m-mitre\')">'+esc(t.id)+'<br>'+esc(t.name)+(t.alerts.length?'<br><span style="opacity:.8">'+t.alerts.length+' alert'+(t.alerts.length>1?'s':'')+'</span>':'')+'</div>').join('')+'</div>'
+    +'<div style="display:flex;gap:12px;font-family:\'IBM Plex Mono\',monospace;font-size:8px"><span style="color:var(--red)">■ detected</span><span style="color:var(--amber)">■ warning</span><span style="color:var(--txt3)">■ clean</span></div>';
+  openM('m-mitre');
+}
+function openMitreDrill(t){
+  if(!t)return;
+  document.getElementById('mdd-title').textContent=t.id+' — '+t.name;
+  const rel=ALERTS.filter(a=>t.alerts.includes(a.id));
+  const SMAP={CRITICAL:'p-crit',HIGH:'p-high',MEDIUM:'p-med',LOW:'p-low'};
+  document.getElementById('mdd-body').innerHTML=
+    '<div style="margin-bottom:9px"><div class="f-lbl" style="margin-bottom:4px">Status</div>'
+    +'<span class="sev-pill '+(t.status==='hit'?'p-crit':t.status==='warn'?'p-high':'p-low')+'">'+(t.status==='hit'?'DETECTED':t.status==='warn'?'WARNING':'CLEAN')+'</span></div>'
+    +'<div style="margin-bottom:9px"><div class="f-lbl" style="margin-bottom:4px">Observed Techniques</div>'
+    +t.techniques.map(tc=>'<div style="padding:3px 7px;background:var(--mid);border-radius:var(--r);margin-bottom:2px;font-family:\'IBM Plex Mono\',monospace;font-size:9px;color:var(--sky)">'+esc(tc)+'</div>').join('')+'</div>'
+    +(rel.length?'<div><div class="f-lbl" style="margin-bottom:4px">Related Alerts ('+rel.length+')</div>'
+    +rel.map(a=>'<div style="padding:6px 8px;background:var(--mid);border-radius:var(--r);margin-bottom:3px;cursor:pointer;display:flex;justify-content:space-between;align-items:center" onclick="openAlertModal(ALERTS.find(x=>x.id===\''+a.id+'\'));closeM(\'m-mitre-drill\')">'
+    +'<span style="font-size:11px;color:var(--txt)">'+esc(a.title)+'</span>'
+    +'<span class="sev-pill '+SMAP[a.sev]+'">'+esc(a.sev)+'</span></div>').join('')+'</div>'
+    :'<div class="fn">No alerts currently mapped to this tactic.</div>');
+  openM('m-mitre-drill');
+}
+function huntFromMitre(){closeM('m-mitre-drill');switchView('hunt');}
+
+/* ── CASES ── */
+function renderCases(){
+  const SMAP={CRITICAL:'p-crit',HIGH:'p-high',MEDIUM:'p-med',LOW:'p-low'};
+  const STMAP={OPEN:'st-new',INVESTIGATING:'st-inv',RESOLVED:'st-res',CLOSED:'st-cls'};
+  document.getElementById('cases-ct-lbl').textContent=CASES.length+' cases';
+  const tb=document.getElementById('cases-tbody');
+  tb.innerHTML=CASES.map(c=>'<tr>'
+    +'<td class="mono" style="font-size:9px;color:var(--sky)">'+esc(c.id)+'</td>'
+    +'<td><div style="font-size:11px;font-weight:500;color:var(--txt)">'+esc(c.title)+'</div><div class="fn">'+esc((c.desc||'').slice(0,55))+'…</div></td>'
+    +'<td><span class="sev-pill '+SMAP[c.pri]+'">'+esc(c.pri)+'</span></td>'
+    +'<td><span class="'+STMAP[c.status]+'">'+esc(c.status)+'</span></td>'
+    +'<td class="fn">'+esc(fmtDT(new Date(c.created)))+'</td>'
+    +'<td class="fn">'+esc(c.analyst)+'</td>'
+    +'<td><div style="display:flex;gap:3px">'
+    +'<button class="btn btn-gold btn-sm" onclick="toast(\'Opened case '+esc(c.id)+'\',\'ok\')">Open</button>'
+    +'<button class="btn btn-ghost btn-sm" onclick="closeCase(\''+esc(c.id)+'\')">Close</button>'
+    +'</div></td>'
+    +'</tr>').join('');
+}
+function closeCase(id){const c=CASES.find(x=>x.id===id);if(!c)return;c.status='CLOSED';saveCases();renderCases();renderOverview();toast('Case '+id+' closed','ok');}
+function openNewCaseModal(){
+  const sel=document.getElementById('nc-alert');
+  sel.innerHTML='<option value="">None</option>'+ALERTS.map(a=>'<option value="'+esc(a.id)+'">'+esc(a.id)+' — '+esc(a.title.slice(0,38))+'</option>').join('');
+  if(S.curAlert)sel.value=S.curAlert.id;
+  openM('m-case');
+}
+function submitCase(){
+  const title=document.getElementById('nc-title').value.trim();
+  if(!title){toast('Enter a case title','warn');return;}
+  const c={id:'CASE-'+String(CASES.length+1).padStart(3,'0'),title:title.slice(0,120),pri:document.getElementById('nc-pri').value,status:'OPEN',created:new Date(),analyst:(document.getElementById('nc-analyst').value||'T.K. Simon').slice(0,60),alertId:document.getElementById('nc-alert').value,desc:(document.getElementById('nc-desc').value||'').slice(0,500)};
+  CASES.unshift(c);saveCases();renderCases();renderOverview();closeM('m-case');
+  document.getElementById('nc-title').value='';document.getElementById('nc-desc').value='';
+  toast('Case '+c.id+' created','ok');
+}
+
+/* ── EXECUTIVE ── */
+function renderExec(){
+  document.getElementById('fin-rows').innerHTML=[['Data exposure risk','$940K','var(--red)'],['Regulatory fines est.','$780K','var(--amber)'],['Recovery & remediation','$680K','var(--sky)']].map(([l,v,c])=>'<div class="comp-row"><span style="color:var(--txt2)">'+l+'</span><span style="color:'+c+'">'+v+'</span></div>').join('');
+  document.getElementById('comp-list').innerHTML=COMPLIANCE.map(c=>'<div class="comp-row"><span style="font-size:11px;color:var(--txt2)">'+esc(c.name)+'</span><div style="display:flex;align-items:center;gap:7px"><div class="comp-bar-w"><div class="comp-bar" style="width:'+c.score+'%;background:'+esc(c.color)+'"></div></div><span class="mono" style="font-size:9px;color:'+esc(c.color)+'">'+c.score+'%</span></div></div>').join('');
+  buildBars('bars7d',BAR7D);
+  const m=metrics();
+  document.getElementById('exec-alert-summary').innerHTML=[
+    ['Critical','var(--red)',ALERTS.filter(a=>a.sev==='CRITICAL').length],
+    ['High','var(--amber)',ALERTS.filter(a=>a.sev==='HIGH').length],
+    ['Open Cases','var(--sky)',m.openCases],
+  ].map(([l,c,v])=>'<div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:3px"><span style="color:'+c+'">'+l+'</span><span>'+v+' alerts</span></div>').join('');
+  document.getElementById('owasp-full').innerHTML=OWASP.map(o=>'<div style="background:'+(o.ok?'var(--teald)':'var(--amberd)')+';border:1px solid '+(o.ok?'rgba(0,201,167,0.2)':'rgba(240,144,0,0.2)')+';border-radius:var(--r);padding:6px 8px"><div class="fn" style="color:'+(o.ok?'var(--teal)':'var(--amber)')+';margin-bottom:2px">'+esc(o.id)+' '+esc(o.name)+'</div><div style="font-size:10px;color:var(--txt2);line-height:1.4">'+esc(o.detail)+'</div></div>').join('');
+}
+
+/* ── RIGHT PANEL ── */
+function renderRP(){
+  const ep=document.getElementById('rp-ep');
+  if(ep)ep.innerHTML=ENDPOINTS.map(e=>'<div class="ep" onclick="toast(\''+esc(e.name)+': '+esc(e.status)+'\',\'ok\')"><span class="ep-dot '+esc(e.dot)+'"></span><span class="ep-name">'+esc(e.name)+'</span><span class="ep-st" style="color:'+(e.dot==='ec'?'var(--red)':e.dot==='ew'?'var(--amber)':'var(--teal)')+'">'+esc(e.status)+'</span></div>').join('');
+  const ge=document.getElementById('rp-geo');
+  if(ge)ge.innerHTML=GEO.map(g=>'<div class="geo-row"><span style="color:'+g.color+'">■</span><span style="color:var(--txt2);flex:1;padding:0 5px">'+esc(g.country)+'</span><span style="color:'+g.color+'">'+esc(g.sev)+'</span></div>').join('');
+}
+
+/* ── LIVE LOG ── */
+let _li=0;
+function addLog(){
+  const feeds=[document.getElementById('rp-log')];
+  const d=LOGS[_li%LOGS.length];_li++;
+  const sc={e:'l-e',w:'l-w',i:'l-i',c:'l-c'}[d.sev]||'l-i';
+  const sl={e:'[ERR]',w:'[WRN]',i:'[INF]',c:'[IOC]'}[d.sev]||'[INF]';
+  const ts=fmtTime(new Date()).split(' ')[0];
+  feeds.forEach(feed=>{
+    if(!feed)return;
+    const row=document.createElement('div');row.className='le';
+    row.innerHTML='<span class="l-ts">'+ts+'</span><span class="'+sc+'">'+sl+'</span><span class="l-m">'+esc(d.msg)+'</span>';
+    feed.insertBefore(row,feed.firstChild);
+    while(feed.children.length>12)feed.removeChild(feed.lastChild);
+  });
+}
+setInterval(addLog,2400);addLog();addLog();addLog();addLog();
+
+/* ── MODALS ── */
+function openM(id){const m=document.getElementById(id);if(m){m.classList.add('open');m.setAttribute('aria-hidden','false');}}
+function closeM(id){const m=document.getElementById(id);if(m){m.classList.remove('open');m.setAttribute('aria-hidden','true');}}
+document.addEventListener('keydown',e=>{if(e.key==='Escape')document.querySelectorAll('.modal-bg.open').forEach(m=>m.classList.remove('open'));});
+document.querySelectorAll('.modal-bg').forEach(bg=>bg.addEventListener('click',e=>{if(e.target===bg)bg.classList.remove('open');}));
+
+/* ── PREFS ── */
+function openPrefsModal(){document.getElementById('pref-name').value='T.K. Simon';document.getElementById('pref-tz').value=S.tz;openM('m-prefs');}
+function savePrefs(){S.tz=document.getElementById('pref-tz').value;savePrefsData();const b=document.getElementById('tz-btn');b.textContent=S.tz;b.classList.toggle('utc',S.tz==='UTC');closeM('m-prefs');renderAll();toast('Preferences saved','ok');}
+
+/* ── ACTION BUTTONS ── */
+function escalateAlert(){if(!S.curAlert)return;toast('Alert '+S.curAlert.id+' escalated to Tier-3','warn');}
+function resolveAlert(){if(!S.curAlert){toast('No alert selected','warn');return;}S.curAlert.status='RESOLVED';renderAlerts();renderOverview();toast('Alert '+S.curAlert.id+' resolved','ok');}
+function isolateHost(){if(!S.curAlert)return;const ep=ENDPOINTS.find(e=>e.name===S.curAlert.host);if(ep){ep.status='ISOLATED';ep.dot='ec';}renderRP();toast('Host '+S.curAlert.host+' isolated','warn');}
+function suspendUser(){if(!S.curAlert)return;toast('Account suspended: '+S.curAlert.user,'warn');}
+function forceLogout(){if(!S.curAlert)return;toast('Force logout: '+S.curAlert.user+' — 3 sessions terminated','ok');}
+function closeInvestigation(){if(!S.curAlert)return;S.curAlert.status='CLOSED';renderAlerts();renderOverview();document.getElementById('inv-wf').style.display='none';document.getElementById('inv-picker').style.display='block';toast('Investigation closed: '+S.curAlert.id,'ok');}
+function generateReport(){toast('Report queued for export: RPT-'+Date.now().toString(36).toUpperCase(),'ok');}
+function exportEvidence(){toast('Evidence package exported: EV-'+(S.curAlert?.id||'X')+'.zip','ok');}
+function exportAlerts(){toast('Alert queue exported to CSV','ok');}
+function blockIOC(){const q=document.getElementById('ioc-q').value.trim().slice(0,40);toast('IOC blocked at perimeter: '+(q||'(none entered)'),'ok');}
+function addIOCToCase(){openNewCaseModal();toast('IOC pre-linked to new case','ok');}
+function exportIOC(){toast('IOC enrichment report exported to PDF','ok');}
+
+/* ── RENDER ALL ── */
+function renderAll(){renderOverview();renderAlerts();renderRP();}
+
+/* ── IOC input enter key ── */
+document.getElementById('ioc-q').addEventListener('keydown',e=>{if(e.key==='Enter')doLookup();});
+
+/* ── INIT ── */
+loadAll();
+renderAll();
+buildTabs('overview');
+document.getElementById('tz-btn').textContent=S.tz;
+document.getElementById('tz-btn').classList.toggle('utc',S.tz==='UTC');
+</script>
+</body>
+</html>
